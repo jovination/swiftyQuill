@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
+import SignupPortal from "@/components/SignupPortal"
+import LoginPortal from "@/components/LoginPortal"
+
 
 
 function Header(){
@@ -22,19 +25,8 @@ function Header(){
    </Link>
 
     <div className="flex items-center">
-    <Button 
-    variant="ghost"
-    className="text-sm w-[66px]"
-    >
-    Log in
-    </Button>
-
-    <Button 
-    variant="ghost"
-    className="text-sm w-[66px]"
-    >
-    Sign up
-    </Button>
+    <LoginPortal />
+    <SignupPortal />
     </div>
   
 
