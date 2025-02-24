@@ -2,6 +2,7 @@ import Image from "next/image";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero"
 import Featured from "@/components/Featured"
+import Footer from "@/components/Footer"
 
 
 export default function Home() {
@@ -10,6 +11,7 @@ export default function Home() {
       <Header />
       <Hero />
       <Featured />  
+      <Footer />
     </div>
   );
 }
