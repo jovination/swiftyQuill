@@ -21,7 +21,7 @@ function Hero(){
                 src="/illustration.svg"
                 width={490}
                 height={400}
-                alt="logo"
+                alt="illustration"
                 />
             </div>
         </div>  

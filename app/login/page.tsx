@@ -1,6 +1,9 @@
+import LoginForm from "@/components/LoginForm"
+
 function Page(){
     return(
-        <div>
+        <div className="bg-[#FEFEFE]">
+        <LoginForm />
         </div>
     )
 }
