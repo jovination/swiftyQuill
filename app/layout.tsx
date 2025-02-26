@@ -1,6 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Instrument_Serif, Inter } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+
 import "./globals.css"
 
 const instrumentSerif = Instrument_Serif({
@@ -29,7 +31,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${instrumentSerif.variable}`}>
-      <body className="font-sans antialiased bg-background text-foreground">{children}</body>
+      <body className="font-sans antialiased bg-background text-foreground">
+      <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>        
+          </body>
     </html>
   )
 }
