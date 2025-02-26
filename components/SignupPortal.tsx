@@ -20,11 +20,11 @@ function SignupPortal(){
       <DialogTrigger asChild>
       <Button variant="ghost" className="text-sm w-[66px]">Sign up</Button>     
      </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px] h-[368px] rounded-3xl">
+      <DialogContent className="md:w-[450px] w-[365px] h-[368px] rounded-3xl">
         <DialogHeader>
           <DialogTitle className="text-2xl">Create your account</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col space-y-2 w-full px-12">
+        <div className="flex flex-col space-y-2 w-full  md:px-12">
       <Button variant="outline" className="h-11 rounded-xl flex items-center justify-center gap-2">
         <Mail className="h-5 w-5" />
         Continue with Email
