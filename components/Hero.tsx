@@ -4,7 +4,7 @@ import Image from 'next/image'
 function Hero(){
     return(
         <div className=" flex  flex-col items-center md:flex-row md:mt-28  gap-16">
-            <div className="mt-12 md:mt-0 p-6 lg:p-12 grow flex-1 space-y-8  md:ml-10 ">
+            <div className="mt-12 md:mt-0 px-6 lg:p-12 grow flex-1 space-y-8  md:ml-10 ">
               <h1 className="text-5xl md:text-6xl font-serif font-medium">
                Write, Plan, Stay <br /> Organized.
               </h1>
