@@ -8,7 +8,7 @@ import LoginPortal from "@/components/LoginPortal"
 
 function Header(){
     return(
-<div className="py-6 flex items-center justify-between">
+<div className="w-full py-6 flex items-center justify-between">
    <Link
     href="/"
     className="flex items-center gap-2">

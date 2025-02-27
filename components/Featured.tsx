@@ -6,7 +6,7 @@ import { RiEditCircleLine } from "react-icons/ri";
 function Featured() {
   return (
     <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:p-10">
-      <div className="w-[345px] h-auto  rounded-[30px] p-6 bg-[#F4F4F4] shadow-sm flex flex-col gap-10 justify-between">
+      <div className="w-[345px] h-auto  rounded-[30px] p-6 bg-[#0d0d0d]/5 shadow-sm flex flex-col gap-10 justify-between">
       <RiEditCircleLine className="text-4xl text-black self-end" />
         <div className="space-y-2 p-6 bg-[#FEFEFE] rounded-[20px]">
           <span className="text-xl font-medium">Easy Note Taking</span>
@@ -16,7 +16,7 @@ function Featured() {
         </div>
       </div>
 
-      <div className="w-[345px] h-auto rounded-[30px] p-6 bg-[#F4F4F4] shadow-sm flex flex-col gap-10 justify-between">
+      <div className="w-[345px] h-auto rounded-[30px] p-6 bg-[#0d0d0d]/5 shadow-sm flex flex-col gap-10 justify-between">
       <PiTreeStructure className="text-4xl text-black self-end" />
         <div className="space-y-2 p-6 bg-[#FEFEFE] rounded-[20px]">
           <span className="text-xl font-medium">Organized Structure</span>
@@ -26,7 +26,7 @@ function Featured() {
         </div>
       </div>
 
-      <div className="w-[345px] h-auto rounded-[30px] p-6 bg-[#F4F4F4] shadow-sm flex flex-col gap-10 justify-between">
+      <div className="w-[345px] h-auto rounded-[30px] p-6 bg-[#0d0d0d]/5 shadow-sm flex flex-col gap-10 justify-between">
         <RiCloudLine className="text-4xl text-black self-end" />
         <div className="space-y-2 p-6 bg-[#FEFEFE] rounded-[20px]">
           <span className="text-xl font-medium">Seamless Syncing</span>
