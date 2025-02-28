@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { FaApple, FaGithub } from "react-icons/fa"
 import GoogleIcon from "@/public/google.svg"
-import { SignIn } from "@/components/sign-in";
 import { Mail } from "lucide-react"
 
 
