@@ -45,15 +45,7 @@ function LoginForm(){
          </div>
 
          <div className="w-full flex flex-col space-y-2">
-        <Button variant="outline" className="h-11 rounded-xl flex items-center justify-center gap-2">
-          <Mail className="h-5 w-5" />
-          Continue with Email
-        </Button>
-
-        <Button variant="outline" className="h-11 rounded-xl flex items-center justify-center gap-2">
-          <FaApple className="h-5 w-5" />
-          Continue with Apple
-        </Button>
+        
         <Button variant="outline" className="h-11 rounded-xl flex items-center justify-center gap-2">
           <FaGithub className="h-5 w-5" />
           Continue with Github
