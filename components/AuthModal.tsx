@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { GoogleAuthButton, GithubAuthButton, EmailAuthButton } from "@/components/AuthButtons";
 import SignIn from "@/components/sign-in";
-import SignUp from "@/components/sign-up"; // make sure to create this component
+import SignUp from "@/components/sign-up"; 
 
 type AuthModalProps = {
   mode: "signin" | "signup";
