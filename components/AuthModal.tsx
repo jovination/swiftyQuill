@@ -3,8 +3,7 @@ import { useState } from "react";
 import { GoogleAuthButton, GithubAuthButton, EmailAuthButton } from "@/components/AuthButtons";
 import SignIn from "@/components/sign-in";
 import SignUp from "@/components/sign-up"; 
-import { signIn } from "next-auth/react"; // client version
-
+import { signIn } from "next-auth/react"; 
 type AuthModalProps = {
   mode?: "signin" | "signup";
 };

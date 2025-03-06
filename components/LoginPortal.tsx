@@ -43,7 +43,7 @@ function LoginPortal() {
       <AuthModal mode="signin" />
       <div className="mt-4 text-center">
         <span className="text-sm">Don't have an account? </span>
-        <Link className="text-sm underline text-grey-600" href="/login">
+        <Link className="text-sm underline text-grey-600" href="/signup">
           Sign up
         </Link>
       </div>

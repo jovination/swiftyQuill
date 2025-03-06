@@ -6,6 +6,7 @@ import { Mail } from "lucide-react"
 import { FaApple, FaGithub } from "react-icons/fa"
 import Link from "next/link"
 import AuthModal from "@/components/AuthModal";
+import SignupModal from "@/components/SignupModal"
 
 
 
@@ -26,12 +27,7 @@ function SignupForm(){
 
             <h1 className="text-3xl font-medium">Create your account</h1>
           </div> 
-          <form className=" mt-10 space-y-4">
-          <Input className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium" type="name" placeholder="Name" />
-            <Input className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium" type="email" placeholder="Email Address" />
-            <Input className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium" type="password" placeholder="Password" />
-            <Button className="w-full h-[48px] rounded-[16px] text-base font-normal">Continue</Button>
-          </form> 
+         <SignupModal />
           <div className="flex flex-col items-center mt-4 space-y-4">
           <div className="flex items-center text-center gap-2">
           <span className="text-sm">Already have an account? </span>

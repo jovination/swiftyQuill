@@ -6,6 +6,8 @@ import { Mail } from "lucide-react"
 import { FaApple, FaGithub } from "react-icons/fa"
 import Link from "next/link"
 import AuthModal from "@/components/AuthModal";
+import LoginModal from "@/components/LoginModal"
+
 
 
 
@@ -25,11 +27,8 @@ function LoginForm(){
           </Link>
             <h1 className="text-3xl font-medium">Welcome back</h1>
           </div> 
-          <form className=" mt-10 space-y-4">
-            <Input className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium" type="email" placeholder="Email Address" />
-            <Input className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium" type="password" placeholder="Password" />
-            <Button className="w-full h-[48px] rounded-[16px] text-base font-normal">Continue</Button>
-          </form> 
+          <LoginModal />
+
           <div className="flex flex-col items-center mt-4 space-y-4">
           <Link className="text-sm underline text-grey-600" href="/login">
           Forgot password?
