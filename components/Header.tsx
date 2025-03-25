@@ -8,14 +8,14 @@ import LoginPortal from "@/components/LoginPortal"
 
 function Header(){
     return(
-<div className="w-full py-6 flex items-center justify-between">
+<div className="max-w-6xl w-full py-6  md:px-8 flex items-center justify-between">
    <Link
     href="/"
     className="flex items-center gap-2">
    <Image
       src="/logo.svg"
-      width={30}
-      height={30}
+      width={33}
+      height={33}
       alt="logo"
     />
    <span

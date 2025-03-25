@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,21 +15,31 @@ function LoginModal() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); 
+    setLoading(true);
+    setError("");
 
-    const result = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (result?.error) {
-      setError(result.error);
-    } else {
-      router.push("/");
+      const data = await response.json();
+
+      if (response.ok) {
+        router.push("/notes");
+      } else {
+        setError(data.message || "Login failed");
+        setLoading(false);
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      setLoading(false);
+      console.error("Login error:", err);
     }
-
-    setLoading(false);
   };
 
   return (
