@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma, SubscriptionStatus, PaymentStatus } from '@prisma/client';
 
 export type SubscriptionCreateInput = {
   userId: string;
   plan: string;
-  status: string;
+  status: SubscriptionStatus;
   endDate: Date;
   paymentMethod?: string;
   stripeCustomerId?: string;
@@ -12,7 +13,7 @@ export type SubscriptionCreateInput = {
 
 export type SubscriptionUpdateInput = {
   plan?: string;
-  status?: string;
+  status?: SubscriptionStatus;
   endDate?: Date;
   paymentMethod?: string;
   stripeCustomerId?: string;
@@ -50,7 +51,7 @@ export const subscriptionModel = {
     return prisma.subscription.update({
       where: { userId },
       data: {
-        status: "canceled",
+        status: "CANCELED",
         updatedAt: new Date(),
       },
     });
@@ -62,7 +63,7 @@ export const subscriptionModel = {
     currency: string;
     paymentMethod: string;
     transactionId: string;
-    status: string;
+    status: PaymentStatus;
   }) {
     return prisma.userPayment.create({
       data: {
@@ -89,7 +90,7 @@ export const subscriptionModel = {
     if (!subscription) return false;
 
     return (
-      subscription.status === "active" && new Date(subscription.endDate) > new Date()
+      subscription.status === "ACTIVE" && new Date(subscription.endDate) > new Date()
     );
   },
 };
