@@ -1,9 +1,12 @@
 "use client";
+
 import { useState } from "react";
 import { GoogleAuthButton, GithubAuthButton, EmailAuthButton } from "@/components/AuthButtons";
 import SignIn from "@/components/sign-in";
-import SignUp from "@/components/sign-up"; 
-import { signIn } from "next-auth/react"; 
+import SignUp from "@/components/sign-up";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 type AuthModalProps = {
   mode?: "signin" | "signup";
 };
@@ -11,11 +14,21 @@ type AuthModalProps = {
 function AuthModal({ mode }: AuthModalProps) {
   const [showForm, setShowForm] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState<"google" | "github" | null>(null);
+  const router = useRouter();
 
   const handleAuth = async (provider: "google" | "github") => {
     setLoadingProvider(provider);
     try {
-      await signIn(provider);
+      const result = await signIn(provider, { 
+        redirect: false, 
+        callbackUrl: '/notes' 
+      });
+
+      if (result?.error) {
+        console.error(`Authentication error with ${provider}:`, result.error);
+      } else {
+        router.push('/notes');
+      }
     } catch (error) {
       console.error(`Error signing in with ${provider}:`, error);
     } finally {
@@ -34,13 +47,13 @@ function AuthModal({ mode }: AuthModalProps) {
           {mode && (
             <EmailAuthButton onClick={() => setShowForm(true)} />
           )}
-          <GithubAuthButton 
+          <GithubAuthButton
             pending={loadingProvider === "github"}
-            onClick={async () => await handleAuth("github")}
+            onClick={() => handleAuth("github")}
           />
-          <GoogleAuthButton 
+          <GoogleAuthButton
             pending={loadingProvider === "google"}
-            onClick={async () => await handleAuth("google")}
+            onClick={() => handleAuth("google")}
           />
         </div>
       )}

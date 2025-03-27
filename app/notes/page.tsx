@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { PrismaClient } from "@prisma/client"
+import TakingNotesButtons from "@/components/TakingNotesButtons"
+
+
+
+
 import Navbar from "@/components/Navbar"
 
 const prisma = new PrismaClient()
@@ -24,7 +29,7 @@ export default async function NotesPage() {
   })
 
   return (
-    <div className="max-w-7xl w-full mx-auto p-8">
+    <div className="max-w-7xl w-full mx-auto p-8 flex flex-col items-center  ">
      <Navbar />
 
       {notes.length === 0 ? (
@@ -53,6 +58,9 @@ export default async function NotesPage() {
           ))}
         </div>
       )}
+<div className="w-full flex  justify-center fixed bottom-6 left-1/2 transform -translate-x-1/2">
+    <TakingNotesButtons />
+  </div>     
     </div>
   )
 }

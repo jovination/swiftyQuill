@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const Navbar = () => {
     return (
-        <div className="flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
                 <Image
                     src="/logo.svg"
