@@ -26,10 +26,10 @@ export default async function NotesPage() {
     orderBy: {
       updatedAt: "desc",
     },
-  })
+  });
 
   return (
-    <div className="max-w-7xl w-full mx-auto p-8 flex flex-col items-center  ">
+    <div className="max-w-7xl w-full mx-auto  p-4 md:p-8 flex flex-col items-center  ">
      <Navbar />
 
       {notes.length === 0 ? (

@@ -15,7 +15,7 @@ function Hero(){
             className="w-[160px] h-[48px] rounded-[20px] text-base"
             >Try For free</Button>
             </div>
-            <div className=" flex justify-end w-[380px] md:w-[560px] items-center">
+            <div className=" flex justify-end w-[380px] lg:w-[560px] items-center">
             <Image
                 className=""
                 src="/illustration.svg"

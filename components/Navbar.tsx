@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { BsLightningCharge } from "react-icons/bs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import ProfilePortal from "@/components/ProfilePortal"
 
 
 
@@ -22,10 +22,7 @@ const Navbar = () => {
                 <BsLightningCharge />
                 Upgrade
                 </Button>
-                <Avatar>
-                <AvatarImage src="" />
-                <AvatarFallback>J</AvatarFallback>
-                </Avatar>
+               <ProfilePortal />
 
             </div>
         </div>
