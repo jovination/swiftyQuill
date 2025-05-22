@@ -43,7 +43,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return { 
             id: user.id, 
             email: user.email, 
-            name: user.username 
+            name: user.username,
+            username: user.username,
+            image: user.image
           };
         } catch (error) {
           console.error("Authorization error:", error);
@@ -55,12 +57,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        token.username = user.username;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token.id && typeof token.id === "string") {
         session.user.id = token.id;
+      }
+      if (token.username && typeof token.username === "string") {
+        session.user.username = token.username;
       }
       return session;
     },
@@ -71,10 +79,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!existingUser) {
+          // Generate a unique username from email
+          const baseUsername = user.email!.split("@")[0];
+          let username = baseUsername;
+          let counter = 1;
+          
+          // Keep trying until we find a unique username
+          while (await prisma.user.findUnique({ where: { username } })) {
+            username = `${baseUsername}${counter}`;
+            counter++;
+          }
+
           await prisma.user.create({
             data: {
               email: user.email!,
-              username: user.email!.split("@")[0],
+              username: username,
               createdAt: new Date(),
               updatedAt: new Date(),
             },
