@@ -2,6 +2,24 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { PrismaClient } from "@prisma/client"
 import TakingNotesButtons from "@/components/TakingNotesButtons"
+import { IoSearchOutline } from "react-icons/io5";
+import { MdOutlineKeyboardCommandKey } from "react-icons/md";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { IoAddOutline } from "react-icons/io5";
+
+
+
 
 
 
@@ -31,9 +49,55 @@ export default async function NotesPage() {
   return (
     <div className="max-w-7xl w-full mx-auto  p-4 md:p-8 flex flex-col items-center  ">
      <Navbar />
+     <div className="md:hidden  max-w-[650px] w-full h-10 bg-black/5 rounded-xl px-3 flex items-center justify-between mt-6">
+            <div className="flex items-center gap-1">
+            <IoSearchOutline className='text-2xl text-gray-400 ' />
+            <input className="bg-transparent focus:outline-none focus:ring-0 focus:border-none border-none placeholder:text-md" placeholder="Search" />
+            </div>
+            <div className="flex items-center gap-1">
+            <MdOutlineKeyboardCommandKey  className='text-xl text-gray-400' />
+            <span className="text-gray-500 text-md uppercase">k</span>
+            </div> 
+            </div>
+
+            <div className=" max-w-[650px] w-full   md:-ml-28 mt-4 flex items-center gap-3"> 
+              <span className='px-3 py-2 bg-black  text-white text-sm rounded-full'>All</span>
+              <span className='px-3 py-2 bg-black/5 hover:bg-black/10 text-sm rounded-full'>Shared</span>
+              <span className='px-3 py-2 bg-black/5 hover:bg-black/10 text-sm rounded-full'>Starred</span>
+              <Dialog>
+      <DialogTrigger asChild>
+        <Button className="bg-black/5 w-9 h-9 rounded-full hover:bg-black/10">
+        <IoAddOutline className="text-lg text-black" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[400px] md:w-full w-[350px] rounded-3xl">
+        <DialogHeader>
+          <DialogTitle>Create tag</DialogTitle>
+          <DialogDescription>
+          We’ll use these keywords to auto-tag new notes and recommend past notes.          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <input 
+          placeholder="Meeting notes, To-do, Agendas"
+          className="w-full h-[48px] rounded-[16px] border-none bg-black/5 px-6 text-sm font-medium  border-none focus:outline-none focus:border-none focus:ring-0 "
+          />
+          </div>
+          
+        </div>
+        <DialogFooter className="flex justify-end gap-2">
+         <Button className=" px-5 h-11 rounded-[16px] bg-black/5 hover:bg-black/10 text-black" c type="submit">Cancel</Button>
+          <Button className=" px-5 h-11 rounded-[16px]" c type="submit">Create</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+            </div>
 
       {notes.length === 0 ? (
-        <div className="text-center py-10">
+        <div className="text-center py-6">
           <p className="text-muted-foreground">You don't have any notes yet.</p>
           <p className="mt-2">
             <a href="/notes/new" className="text-primary hover:underline">
