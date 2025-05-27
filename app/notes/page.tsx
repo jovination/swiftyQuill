@@ -17,18 +17,39 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { IoAddOutline } from "react-icons/io5";
-
-
-
-
-
-
+import { revalidatePath } from "next/cache";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import Navbar from "@/components/Navbar"
 
 const prisma = new PrismaClient()
 
-export default async function NotesPage() {
+async function createTag(formData: FormData) {
+  'use server'
+  
+  const session = await auth()
+  if (!session?.user?.id) return
+
+  const name = formData.get('name') as string
+  if (!name) return
+
+  await prisma.tag.create({
+    data: {
+      name: name,
+      userId: session.user.id,
+      isDefault: false
+    },
+  })
+
+  revalidatePath('/notes')
+}
+
+export default async function NotesPage({
+  searchParams,
+}: {
+  searchParams: { tag?: string }
+}) {
   const session = await auth()
 
   // Check if user is authenticated
@@ -36,14 +57,48 @@ export default async function NotesPage() {
     redirect("/login")
   }
 
+  const activeTag = searchParams.tag || 'All'
+
   // Fetch user's notes
   const notes = await prisma.note.findMany({
     where: {
       userId: session.user.id,
+      ...(activeTag !== 'All' && {
+        tags: {
+          some: {
+            tag: {
+              OR: [
+                { name: activeTag, isDefault: true },
+                { name: activeTag, userId: session.user.id }
+              ]
+            }
+          }
+        }
+      })
     },
     orderBy: {
       updatedAt: "desc",
     },
+    include: {
+      tags: {
+        include: {
+          tag: true
+        }
+      }
+    }
+  });
+
+  // Fetch all tags (both default and user-specific)
+  const tags = await prisma.tag.findMany({
+    where: {
+      OR: [
+        { isDefault: true },
+        { userId: session.user.id }
+      ]
+    },
+    orderBy: {
+      createdAt: 'asc'
+    }
   });
 
   return (
@@ -60,40 +115,57 @@ export default async function NotesPage() {
             </div> 
             </div>
 
-            <div className=" max-w-[650px] w-full   md:-ml-28 mt-4 flex items-center gap-3"> 
-              <span className='px-3 py-2 bg-black  text-white text-sm rounded-full'>All</span>
-              <span className='px-3 py-2 bg-black/5 hover:bg-black/10 text-sm rounded-full'>Shared</span>
-              <span className='px-3 py-2 bg-black/5 hover:bg-black/10 text-sm rounded-full'>Starred</span>
+            <div className=" max-w-[650px] w-full   md:-ml-28 mt-4 flex items-center gap-3 flex-wrap"> 
+              {tags.map((tag) => (
+                <a
+                  key={tag.id}
+                  href={`/notes?tag=${tag.name}`}
+                  className={`px-3 py-2 text-sm rounded-full transition-colors ${
+                    activeTag === tag.name
+                      ? 'bg-black text-white'
+                      : 'bg-black/5 hover:bg-black/10'
+                  }`}
+                >
+                  {tag.name}
+                </a>
+              ))}
               <Dialog>
-      <DialogTrigger asChild>
-        <Button className="bg-black/5 w-9 h-9 rounded-full hover:bg-black/10">
-        <IoAddOutline className="text-lg text-black" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-[400px] md:w-full w-[350px] rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>Create tag</DialogTitle>
-          <DialogDescription>
-          We’ll use these keywords to auto-tag new notes and recommend past notes.          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <input 
-          placeholder="Meeting notes, To-do, Agendas"
-          className="w-full h-[48px] rounded-[16px] border-none bg-black/5 px-6 text-sm font-medium  border-none focus:outline-none focus:border-none focus:ring-0 "
-          />
-          </div>
-          
-        </div>
-        <DialogFooter className="flex justify-end gap-2">
-         <Button className=" px-5 h-11 rounded-[16px] bg-black/5 hover:bg-black/10 text-black" c type="submit">Cancel</Button>
-          <Button className=" px-5 h-11 rounded-[16px]" c type="submit">Create</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-black/5 w-9 h-9 rounded-full hover:bg-black/10">
+                    <IoAddOutline className="text-lg text-black" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[400px] md:w-full w-[350px] rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Create tag</DialogTitle>
+                    <DialogDescription>
+                      We'll use these keywords to auto-tag new notes and recommend past notes.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form action={createTag}>
+                    <div className="grid gap-4 py-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-right">
+                          Name
+                        </Label>
+                        <input 
+                          name="name"
+                          placeholder="Meeting notes, To-do, Agendas"
+                          className="w-full h-[48px] rounded-[16px] border-none bg-black/5 px-6 text-sm font-medium focus:outline-none focus:border-none focus:ring-0"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter className="flex justify-end gap-2">
+                      <Button className="px-5 h-11 rounded-[16px] bg-black/5 hover:bg-black/10 text-black" type="button">
+                        Cancel
+                      </Button>
+                      <Button className="px-5 h-11 rounded-[16px]" type="submit">
+                        Create
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
       {notes.length === 0 ? (

@@ -8,9 +8,19 @@ async function main() {
   
   for (const tagName of defaultTags) {
     await prisma.tag.upsert({
-      where: { name: tagName },
-      update: {},
-      create: { name: tagName }
+      where: { 
+        name_userId: {
+          name: tagName,
+          userId: null
+        }
+      },
+      update: {
+        isDefault: true
+      },
+      create: { 
+        name: tagName,
+        isDefault: true
+      }
     })
   }
 
