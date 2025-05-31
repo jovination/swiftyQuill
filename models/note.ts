@@ -32,9 +32,17 @@ export const noteModel = {
           create: await Promise.all(tags.map(async (tagName) => {
             // Find or create tag
             const tag = await prisma.tag.upsert({
-              where: { name: tagName },
+              where: { 
+                name_userId: {
+                  name: tagName,
+                  userId: data.userId
+                }
+              },
               update: {},
-              create: { name: tagName },
+              create: { 
+                name: tagName,
+                userId: data.userId
+              },
             });
             
             return {
@@ -89,6 +97,16 @@ export const noteModel = {
     
     // If tags are provided, update them
     if (tags) {
+      // Get the note to access userId
+      const note = await prisma.note.findUnique({
+        where: { id },
+        select: { userId: true }
+      });
+      
+      if (!note) {
+        throw new Error('Note not found');
+      }
+      
       // Get all current tags for this note
       const currentNoteTags = await prisma.noteTag.findMany({
         where: { noteId: id },
@@ -102,9 +120,17 @@ export const noteModel = {
       // Create or connect new tags
       for (const tagName of tags) {
         const tag = await prisma.tag.upsert({
-          where: { name: tagName },
+          where: { 
+            name_userId: {
+              name: tagName,
+              userId: note.userId
+            }
+          },
           update: {},
-          create: { name: tagName },
+          create: { 
+            name: tagName,
+            userId: note.userId
+          },
         });
         
         await prisma.noteTag.create({

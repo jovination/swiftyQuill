@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react"; 
 
- function SignupModal() {
+function SignupModal() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -17,9 +17,10 @@ import { Loader2 } from "lucide-react";
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); 
+    setError("");
 
     try {
-      const response = await fetch("/api/auth/signup", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, username }),
@@ -28,12 +29,26 @@ import { Loader2 } from "lucide-react";
       const data = await response.json();
 
       if (response.ok) {
-        router.push("/login");
+        // After successful registration, log the user in
+        const loginResponse = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (loginResponse.ok) {
+          router.push("/notes");
+        } else {
+          setError("Registration successful but login failed. Please try logging in.");
+        }
       } else {
-        setError(data.message || "Signup failed");
+        setError(data.message || "Registration failed");
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
+      console.error("Registration error:", error);
     } finally {
       setLoading(false); 
     }
@@ -48,7 +63,7 @@ import { Loader2 } from "lucide-react";
           onChange={(e) => setUsername(e.target.value)}
           required
           className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium"
-          placeholder="Name"
+          placeholder="Username"
         />
         <Input
           type="email"
@@ -69,16 +84,16 @@ import { Loader2 } from "lucide-react";
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <Button
           type="submit"
-          disabled={loading} // Disable the button when loading
+          disabled={loading}
           className="w-full h-[48px] rounded-[16px] text-base font-normal flex items-center justify-center"
         >
           {loading ? (
             <>
-              <Loader2 className="size-5 mr-2 animate-spin" /> {/* Spinner */}
+              <Loader2 className="size-5 mr-2 animate-spin" />
               Loading...
             </>
           ) : (
-            "Continue"
+            "Create Account"
           )}
         </Button>
       </form>
@@ -86,4 +101,4 @@ import { Loader2 } from "lucide-react";
   );
 }
 
-export default SignupModal
+export default SignupModal;
