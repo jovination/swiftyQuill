@@ -9,37 +9,71 @@ import { RxCross2 } from "react-icons/rx";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FaMicrophone } from "react-icons/fa6";
+import { ImSpinner8 } from "react-icons/im";
 
-function TakingNotesButtons(){
+interface NoteData {
+    title: string;
+    content: string;
+    imageUrl: string | null;
+}
+
+interface TakingNotesButtonsProps {
+    onNoteCreated?: () => void;
+}
+
+function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     const [isInputVisible, setIsInputVisible] = useState(false);
-    const [noteData, setNoteData] = useState({
+    const [noteData, setNoteData] = useState<NoteData>({
         title: '',
         content: '',
         imageUrl: null
     });
+    const [isSaving, setIsSaving] = useState(false);
 
     const toggleInputField = () => {
         setIsInputVisible(!isInputVisible);
     };
 
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof NoteData, value: string | null) => {
         setNoteData(prev => ({
             ...prev,
             [field]: value
         }));
     };
 
-    const handleSaveNote = () => {
-        // Here you would typically save the note data to your database
-        console.log('Saving note:', noteData);
+    const handleSaveNote = async () => {
+        if (!noteData.title.trim() && !noteData.content.trim()) return;
         
-        // Reset form after saving
-        setNoteData({
-            title: '',
-            content: '',
-            imageUrl: null
-        });
-        setIsInputVisible(false);
+        setIsSaving(true);
+        try {
+            const response = await fetch('/api/notes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(noteData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save note');
+            }
+
+            // Reset form after successful save
+            setNoteData({
+                title: '',
+                content: '',
+                imageUrl: null
+            });
+            setIsInputVisible(false);
+            
+            // Trigger the callback to refresh notes
+            onNoteCreated?.();
+        } catch (error) {
+            console.error('Error saving note:', error);
+            // You might want to show an error message to the user here
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = () => {
@@ -52,8 +86,8 @@ function TakingNotesButtons(){
         setIsInputVisible(false);
     };
 
-    const handleImageUpload = (event) => {
-        const file = event.target.files[0];
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
         if (file) {
             // Here you would typically upload the file and get a URL
             // For now, we'll just create a local URL for preview
@@ -133,11 +167,20 @@ function TakingNotesButtons(){
                         </Button>
                         <Button
                             onClick={handleSaveNote}
-                            disabled={!noteData.title.trim() && !noteData.content.trim()}
+                            disabled={(!noteData.title.trim() && !noteData.content.trim()) || isSaving}
                             className="h-[40px] rounded-[12px] bg-[#58A942]/10 hover:bg-[#58A942]/15 text-[#58A942] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <MdDone className="text-[#58A942]" />
-                            Done
+                            {isSaving ? (
+                                <>
+                                    <ImSpinner8 className="animate-spin mr-2" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <MdDone className="text-[#58A942]" />
+                                    Done
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>

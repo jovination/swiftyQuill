@@ -159,14 +159,14 @@ export default async function NotesPage({
           </p>
         </div>
       ) : (
-        <div className="max-w-3xl space-y-4 mt-10">
+        <div className="max-w-3xl w-full space-y-4 mt-10">
           {notes.map((note) => (
             <div key={note.id} className="border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900">
                <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
                 <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
                 {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
               </div>
-              <h2 className="font-semibold text-md mb-2 truncate">{note.title}</h2>
+              <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
               <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {note.tags.map(({ tag }) => (
