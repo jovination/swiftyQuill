@@ -66,6 +66,9 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             });
             setIsInputVisible(false);
             
+            // Dispatch custom event for note creation
+            window.dispatchEvent(new Event('noteCreated'));
+            
             // Trigger the callback to refresh notes
             onNoteCreated?.();
         } catch (error) {
