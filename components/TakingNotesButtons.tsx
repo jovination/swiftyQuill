@@ -10,21 +10,102 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FaMicrophone } from "react-icons/fa6";
 
-
 function TakingNotesButtons(){
     const [isInputVisible, setIsInputVisible] = useState(false);
+    const [noteData, setNoteData] = useState({
+        title: '',
+        content: '',
+        imageUrl: null
+    });
 
     const toggleInputField = () => {
         setIsInputVisible(!isInputVisible);
     };
 
+    const handleInputChange = (field, value) => {
+        setNoteData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleSaveNote = () => {
+        // Here you would typically save the note data to your database
+        console.log('Saving note:', noteData);
+        
+        // Reset form after saving
+        setNoteData({
+            title: '',
+            content: '',
+            imageUrl: null
+        });
+        setIsInputVisible(false);
+    };
+
+    const handleCancel = () => {
+        // Reset form when canceling
+        setNoteData({
+            title: '',
+            content: '',
+            imageUrl: null
+        });
+        setIsInputVisible(false);
+    };
+
+    const handleImageUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Here you would typically upload the file and get a URL
+            // For now, we'll just create a local URL for preview
+            const imageUrl = URL.createObjectURL(file);
+            handleInputChange('imageUrl', imageUrl);
+        }
+    };
+
     return(
-    <div className="w-full flex flex-col items-center gap-4">
+    <div className="w-full  flex flex-col items-center gap-4">
         {/* Conditionally render the input field based on isInputVisible state */}
         {isInputVisible && (
-            <div className="inputfield flex flex-col justify-between w-[360px] md:w-[440px] h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5">
-                <textarea className="w-full h-auto outline-none bg-transparent resize-none" placeholder="Write a note..."></textarea>
-                <div className="flex items-center justify-between">
+            <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3">
+                {/* Title Input */}
+                <input
+                    type="text"
+                    value={noteData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    className="w-full text-md font-medium outline-none bg-transparent border-none placeholder:text-gray-400 placeholder:font-medium"
+                    placeholder="Note title..."
+                />
+                
+                {/* Divider line */}
+                <div className="w-full h-px bg-gray-200"></div>
+                
+                {/* Content Textarea */}
+                <textarea 
+                    value={noteData.content}
+                    onChange={(e) => handleInputChange('content', e.target.value)}
+                    className="w-full h-24 outline-none bg-transparent resize-none placeholder:text-gray-400 text-sm" 
+                    placeholder="Write a note..."
+                ></textarea>
+                
+                {/* Image preview if uploaded */}
+                {noteData.imageUrl && (
+                    <div className="relative">
+                        <img 
+                            src={noteData.imageUrl} 
+                            alt="Note attachment" 
+                            className="max-w-full h-auto max-h-32 rounded-lg object-cover"
+                        />
+                        <button
+                            onClick={() => handleInputChange('imageUrl', null)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+                
+                {/* Bottom controls */}
+                <div className="flex items-center justify-between pt-2">
                     <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-[#0D0D0D]/5 px-4 text-black transition hover:bg-[#0D0D0D]/10">
                         <svg className="h-5 w-5" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
                             <title />
@@ -36,17 +117,24 @@ function TakingNotesButtons(){
                                 </g>
                             </g>
                         </svg>
-                        <Input type="file" className="hidden" />
+                        <Input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                        />
                     </label>
                     <div className="flex items-center gap-2">
                         <Button
-                            onClick={() => setIsInputVisible(false)}
+                            onClick={handleCancel}
                             className="h-[40px] rounded-[12px] bg-[#0D0D0D]/5 hover:bg-[#0D0D0D]/10 text-black"
                         >
                             <RxCross2 />
                         </Button>
                         <Button
-                            className="h-[40px] rounded-[12px] bg-[#58A942]/10 hover:bg-[#58A942]/15 text-[#58A942]"
+                            onClick={handleSaveNote}
+                            disabled={!noteData.title.trim() && !noteData.content.trim()}
+                            className="h-[40px] rounded-[12px] bg-[#58A942]/10 hover:bg-[#58A942]/15 text-[#58A942] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <MdDone className="text-[#58A942]" />
                             Done
@@ -56,7 +144,7 @@ function TakingNotesButtons(){
             </div>
         )}
 
-        <div className="max-w-[352px] w-full h-[64px] rounded-3xl border border-[#EBEBEB]/50 shadow-md p-2 flex items-center justify-between">
+        <div className="bg-background max-w-[352px] w-full h-[64px] rounded-3xl border border-[#EBEBEB]/50 shadow-md p-2 flex items-center justify-between">
             <Button
                 className="h-[48px] rounded-[20px] bg-black/5 text-black hover:bg-black/10"
             >

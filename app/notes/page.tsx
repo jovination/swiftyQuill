@@ -5,6 +5,7 @@ import TakingNotesButtons from "@/components/TakingNotesButtons"
 import { IoSearchOutline } from "react-icons/io5";
 import { MdOutlineKeyboardCommandKey } from "react-icons/md";
 import { Button } from "@/components/ui/button";
+import { FiSend } from "react-icons/fi";
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Menubar,
+  MenubarCheckboxItem,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarRadioGroup,
+  MenubarRadioItem,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarTrigger,
+} from "@/components/ui/menubar"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { IoAddOutline } from "react-icons/io5";
 import Link from "next/link";
 import Navbar from "@/components/Navbar"
 import TagDialog from "@/components/TagDialog"
+
+import { HiOutlineDotsHorizontal } from "react-icons/hi";
+import { IoCopyOutline } from "react-icons/io5";
+import { IoAddSharp } from "react-icons/io5";
 
 const prisma = new PrismaClient()
 
@@ -139,25 +159,64 @@ export default async function NotesPage({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="max-w-3xl space-y-4 mt-10">
           {notes.map((note) => (
-            <div key={note.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-              <h2 className="font-semibold text-lg mb-2 truncate">{note.title}</h2>
+            <div key={note.id} className="border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900">
+               <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
+                {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
+              </div>
+              <h2 className="font-semibold text-md mb-2 truncate">{note.title}</h2>
               <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {note.tags.map(({ tag }) => (
-                  <span key={tag.id} className="text-xs px-2 py-1 bg-black/5 rounded-full">
+                  <span key={tag.id} className="text-xs px-3 py-2 bg-black/5 rounded-full lowercase text-gray-700">
                     {tag.name}
                   </span>
                 ))}
               </div>
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
-                {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
-              </div>
+             
+             <div className="flex justify-between items-center">
               <a href={`/notes/${note.id}`} className="mt-3 text-primary text-sm hover:underline block">
                 View Note →
               </a>
+              <div className="flex gap-2 items-center">
+              <span  className="flex items-center text-sm px-3 py-1 bg-black/5 rounded-full gap-1 cursor-pointer hover:black/20 transition-all duration-300">
+              <FiSend />
+                  Share 
+                </span>
+
+                <Menubar>
+                <MenubarMenu >
+                <MenubarTrigger className="flex items-center bg-black/5 hover:bg-black/10  rounded-full">
+                <HiOutlineDotsHorizontal />
+                </MenubarTrigger>
+                <MenubarContent>
+          <MenubarItem>
+            Copy Note <MenubarShortcut>
+              <IoCopyOutline className="" />
+            </MenubarShortcut>
+          </MenubarItem>
+          <MenubarItem>
+            Add Tag <MenubarShortcut>
+              <IoAddSharp className="text-lg" />
+            </MenubarShortcut>
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem>
+            Share <MenubarShortcut>
+            <FiSend className="text-md" />
+            </MenubarShortcut>
+          </MenubarItem>
+          <MenubarSeparator />
+          <MenubarItem>
+            Print... <MenubarShortcut>⌘P</MenubarShortcut>
+          </MenubarItem>
+        </MenubarContent>
+                 </MenubarMenu> 
+                 </Menubar>
+              </div>
+              </div>
             </div>
           ))}
         </div>
