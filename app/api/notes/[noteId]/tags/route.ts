@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { PrismaClient } from "@prisma/client"
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient()
+const prismaClient = new PrismaClient()
 
 export async function POST(
   request: Request,
-  context: { params: { noteId: string } }
+  { params }: { params: { noteId: string } }
 ) {
   try {
     const session = await auth()
@@ -15,15 +16,18 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const noteId = context.params.noteId
+    const noteId = await params.noteId
     const { tagId } = await request.json()
 
     if (!tagId) {
-      return new NextResponse("Tag ID is required", { status: 400 })
+      return NextResponse.json(
+        { error: 'Tag ID is required' },
+        { status: 400 }
+      )
     }
 
     // Find user by email
-    const user = await prisma.user.findUnique({
+    const user = await prismaClient.user.findUnique({
       where: { email: session.user.email }
     })
 
@@ -32,7 +36,7 @@ export async function POST(
     }
 
     // Check if note exists and belongs to user
-    const note = await prisma.note.findFirst({
+    const note = await prismaClient.note.findFirst({
       where: {
         id: noteId,
         userId: user.id
@@ -44,7 +48,7 @@ export async function POST(
     }
 
     // Check if tag exists and is accessible to user
-    const tag = await prisma.tag.findFirst({
+    const tag = await prismaClient.tag.findFirst({
       where: {
         id: tagId,
         OR: [
@@ -59,7 +63,7 @@ export async function POST(
     }
 
     // Add tag to note
-    const noteTag = await prisma.noteTag.create({
+    const noteTag = await prismaClient.noteTag.create({
       data: {
         noteId,
         tagId
@@ -71,7 +75,36 @@ export async function POST(
 
     return NextResponse.json(noteTag)
   } catch (error) {
-    console.error("[NOTES_TAGS_POST]", error)
-    return new NextResponse("Internal error", { status: 500 })
+    console.error('Error adding tag:', error)
+    return NextResponse.json(
+      { error: 'Failed to add tag' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: { noteId: string } }
+) {
+  try {
+    const noteId = await params.noteId
+
+    const noteTags = await prisma.noteTag.findMany({
+      where: {
+        noteId,
+      },
+      include: {
+        tag: true,
+      },
+    })
+
+    return NextResponse.json(noteTags)
+  } catch (error) {
+    console.error('Error fetching note tags:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch note tags' },
+      { status: 500 }
+    )
   }
 } 
