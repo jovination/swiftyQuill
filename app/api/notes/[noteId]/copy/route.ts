@@ -2,15 +2,9 @@ import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-type Props = {
-    params: {
-        noteId: string;
-    };
-};
-
 export async function POST(
     request: NextRequest,
-    props: Props
+    { params }: { params: { noteId: string } }
 ) {
     try {
         const session = await auth();
@@ -19,7 +13,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { noteId } = props.params;
+        const { noteId } = params;
 
         // Get user by email
         const user = await prisma.user.findUnique({
