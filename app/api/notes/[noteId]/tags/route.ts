@@ -7,7 +7,7 @@ const prismaClient = new PrismaClient()
 
 export async function POST(
   request: Request,
-  { params }: { params: { noteId: string } }
+  { params }: { params: Promise<{ noteId: string }> }
 ) {
   try {
     const session = await auth()
@@ -16,7 +16,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const { noteId } = await Promise.resolve(params)
+    const { noteId } = await params
     const { tagId } = await request.json()
 
     if (!tagId) {
@@ -79,10 +79,10 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  { params }: { params: { noteId: string } }
+  { params }: { params: Promise<{ noteId: string }> }
 ) {
   try {
-    const { noteId } = await Promise.resolve(params)
+    const { noteId } = await params
 
     const noteTags = await prisma.noteTag.findMany({
       where: {

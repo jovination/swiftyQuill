@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
     req: Request,
-    { params }: { params: { noteId: string } }
+    { params }: { params: Promise<{ noteId: string }> }
 ) {
     try {
         const session = await auth();
@@ -13,7 +13,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { noteId } = params;
+        const { noteId } = await params;
         const body = await req.json();
         const { sharedWithEmail } = body;
 
