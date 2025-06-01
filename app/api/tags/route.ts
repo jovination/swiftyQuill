@@ -4,6 +4,43 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
+export async function GET(request: Request) {
+  try {
+    const session = await auth()
+    
+    if (!session?.user?.email) {
+      return new NextResponse("Unauthorized", { status: 401 })
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return new NextResponse("User not found", { status: 404 })
+    }
+
+    // Get all tags for the user and default tags
+    const tags = await prisma.tag.findMany({
+      where: {
+        OR: [
+          { userId: user.id },
+          { isDefault: true }
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    })
+
+    return NextResponse.json(tags)
+  } catch (error) {
+    console.error("[TAGS_GET]", error)
+    return new NextResponse("Internal error", { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth()
