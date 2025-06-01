@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
     request: NextRequest,
-    context: { params: { noteId: string } }
+    { params }: { params: Promise<{ noteId: string }> }
 ) {
     try {
         const session = await auth();
@@ -13,7 +13,8 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { noteId } = context.params;
+        // Await the params object to get the noteId
+        const { noteId } = await params;
 
         // Get user by email
         const user = await prisma.user.findUnique({
