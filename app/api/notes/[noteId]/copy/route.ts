@@ -13,7 +13,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { noteId } = params;
+        const { noteId } = await Promise.resolve(params);
 
         // Get user by email
         const user = await prisma.user.findUnique({

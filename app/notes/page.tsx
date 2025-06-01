@@ -37,6 +37,7 @@ import { IoAddOutline } from "react-icons/io5";
 import Link from "next/link";
 import Navbar from "@/components/Navbar"
 import TagDialog from "@/components/TagDialog"
+import TagList from "@/components/TagList"
 import NotesListWithStorage from "@/components/NotesListWithStorage"
 import { ImSpinner8 } from "react-icons/im";
 import { Suspense } from 'react'
@@ -119,22 +120,7 @@ export default async function NotesPage({
           <span className="text-gray-500 text-md uppercase">k</span>
         </div>
       </div>
-      <div className="max-w-[650px] w-full md:-ml-28 mt-4 flex items-center gap-3">
-        {tags.map((tag) => (
-          <Link
-            key={tag.id}
-            href={`/notes${tag.name === 'All' ? '' : `?tag=${tag.name}`}`}
-            className={`px-3 py-2 text-sm rounded-full transition-all duration-200 ${
-              (!currentTag || currentTag === 'All' ? tag.name === 'All' : currentTag === tag.name)
-                ? 'bg-black text-white'
-                : 'bg-black/5 hover:bg-black/10 text-black'
-            }`}
-          >
-            {tag.name}
-          </Link>
-        ))}
-        <TagDialog />
-      </div>
+      <TagList tags={tags} currentTag={currentTag} />
       
       <Suspense fallback={
         <div className="max-w-3xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
