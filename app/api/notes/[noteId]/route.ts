@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function DELETE(
@@ -6,19 +7,35 @@ export async function DELETE(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const { noteId } = await Promise.resolve(params)
+    const session = await auth()
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    // Delete the note
+    const { noteId } = params
+
+    // Get user by email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Delete the note (ensure user owns it)
     await prisma.note.delete({
       where: {
         id: noteId,
+        userId: user.id, // Security: ensure user can only delete their own notes
       },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting note:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
 
@@ -27,11 +44,27 @@ export async function GET(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const { noteId } = await Promise.resolve(params)
+    const session = await auth()
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { noteId } = params
+
+    // Get user by email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
     const note = await prisma.note.findUnique({
       where: {
         id: noteId,
+        userId: user.id, // Security: ensure user can only access their own notes
       },
       include: {
         tags: {
@@ -43,13 +76,13 @@ export async function GET(
     })
 
     if (!note) {
-      return new NextResponse('Note not found', { status: 404 })
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 })
     }
 
     return NextResponse.json(note)
   } catch (error) {
     console.error('Error fetching note:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
 
@@ -58,17 +91,51 @@ export async function PATCH(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const { noteId } = await Promise.resolve(params)
+    const session = await auth()
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { noteId } = params
     const body = await request.json()
+    const { title, content, imageUrl, isStarred, isShared, tags } = body
+
+    // Get user by email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // First, delete existing tag connections
+    await prisma.noteTag.deleteMany({
+      where: {
+        noteId: noteId
+      }
+    })
 
     const note = await prisma.note.update({
       where: {
         id: noteId,
+        userId: user.id, // Security: ensure user can only update their own notes
       },
       data: {
-        title: body.title,
-        content: body.content,
-        isStarred: body.isStarred,
+        title,
+        content,
+        imageUrl,
+        isStarred,
+        isShared,
+        updatedAt: new Date(),
+        tags: {
+          create: tags?.map((tagId: string) => ({
+            tag: {
+              connect: { id: tagId }
+            }
+          }))
+        }
       },
       include: {
         tags: {
@@ -82,6 +149,6 @@ export async function PATCH(
     return NextResponse.json(note)
   } catch (error) {
     console.error('Error updating note:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
-} 
+}
