@@ -10,8 +10,15 @@ interface Note {
   imageUrl: string | null
   createdAt: string
   updatedAt: string
+  isStarred: boolean
+  isShared: boolean
   isTemp?: boolean
-  tags?: any[]
+  tags: {
+    tag: {
+      id: string
+      name: string
+    }
+  }[]
 }
 
 interface NotesListWithStorageProps {
