@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { noteId: string } }
+  request: NextRequest,
+  context: { params: { noteId: string } }
 ) {
   try {
     const session = await auth()
@@ -13,7 +13,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { noteId } = params
+    const { noteId } = context.params
 
     // Get user by email
     const user = await prisma.user.findUnique({
@@ -40,8 +40,8 @@ export async function DELETE(
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: { noteId: string } }
+  request: NextRequest,
+  context: { params: { noteId: string } }
 ) {
   try {
     const session = await auth()
@@ -50,7 +50,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { noteId } = params
+    const { noteId } = context.params
 
     // Get user by email
     const user = await prisma.user.findUnique({
@@ -87,8 +87,8 @@ export async function GET(
 }
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { noteId: string } }
+  request: NextRequest,
+  context: { params: { noteId: string } }
 ) {
   try {
     const session = await auth()
@@ -97,7 +97,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { noteId } = params
+    const { noteId } = context.params
     const body = await request.json()
     const { title, content, imageUrl, isStarred, isShared, tags } = body
 
