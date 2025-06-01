@@ -1,12 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { NextRequest } from 'next/server'; // Import NextRequest
 
-// The context object is automatically typed by Next.js
 export async function POST(
-    request: NextRequest, // Use NextRequest for the request object
-    { params }: { params: { noteId: string } } // Destructure the params from the context
+    request: NextRequest,
+    { params }: { params: { noteId: string } }
 ) {
     try {
         const session = await auth();
@@ -15,7 +13,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { noteId } = params; // Access noteId from the destructured params
+        const { noteId } = params;
 
         // Get user by email
         const user = await prisma.user.findUnique({
