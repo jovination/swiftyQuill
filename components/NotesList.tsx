@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/menubar"
 import { ImSpinner8 } from "react-icons/im"
 import { RiDeleteBinLine } from "react-icons/ri";
+import { toast } from "sonner"
 
 interface Note {
   id: string
@@ -83,6 +84,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   const addTagToNote = async (noteId: string, tagId: string) => {
     setUpdatingTags({ noteId, tagId })
+    const toastId = toast.loading('Adding tag...')
     try {
       const response = await fetch(`/api/notes/${noteId}/tags`, {
         method: 'POST',
@@ -106,8 +108,10 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
         }
         return note
       }))
+      toast.success('Tag added successfully', { id: toastId })
     } catch (error) {
       console.error('Error adding tag:', error)
+      toast.error('Failed to add tag', { id: toastId })
       // Revert the optimistic update on error
       await refreshNotes()
     } finally {
@@ -117,6 +121,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   const removeTagFromNote = async (noteId: string, tagId: string) => {
     setUpdatingTags({ noteId, tagId })
+    const toastId = toast.loading('Removing tag...')
     try {
       const response = await fetch(`/api/notes/${noteId}/tags/${tagId}`, {
         method: 'DELETE',
@@ -133,8 +138,10 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
         }
         return note
       }))
+      toast.success('Tag removed successfully', { id: toastId })
     } catch (error) {
       console.error('Error removing tag:', error)
+      toast.error('Failed to remove tag', { id: toastId })
       // Revert the optimistic update on error
       await refreshNotes()
     } finally {
@@ -144,6 +151,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   const deleteNote = async (noteId: string) => {
     setDeletingNoteId(noteId)
+    const toastId = toast.loading('Deleting note...')
     try {
       const response = await fetch(`/api/notes/${noteId}`, {
         method: 'DELETE',
@@ -155,9 +163,10 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
       // Remove the note from the local state immediately
       setNotes(notes.filter(note => note.id !== noteId))
+      toast.success('Note deleted successfully', { id: toastId })
     } catch (error) {
       console.error('Error deleting note:', error)
-      // You might want to show a toast notification here
+      toast.error('Failed to delete note', { id: toastId })
     } finally {
       setDeletingNoteId(null)
     }

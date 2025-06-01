@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FaMicrophone } from "react-icons/fa6";
 import { ImSpinner8 } from "react-icons/im";
+import { toast } from "sonner";
 
 interface NoteData {
     title: string;
@@ -44,7 +45,19 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     const handleSaveNote = async () => {
         if (!noteData.title.trim() && !noteData.content.trim()) return;
         
+        // Save to local storage immediately
+        const tempNote = {
+            ...noteData,
+            id: `temp-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isTemp: true
+        };
+        localStorage.setItem('tempNote', JSON.stringify(tempNote));
+        
         setIsSaving(true);
+        const toastId = toast.loading('Saving note...');
+        
         try {
             const response = await fetch('/api/notes', {
                 method: 'POST',
@@ -58,7 +71,13 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                 throw new Error('Failed to save note');
             }
 
-            // Reset form after successful save
+            const savedNote = await response.json();
+            
+            // Clear local storage and update UI
+            localStorage.removeItem('tempNote');
+            toast.success('Note saved successfully', { id: toastId });
+            
+            // Reset form
             setNoteData({
                 title: '',
                 content: '',
@@ -73,14 +92,17 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             onNoteCreated?.();
         } catch (error) {
             console.error('Error saving note:', error);
-            // You might want to show an error message to the user here
+            toast.error('Failed to save note. Your note is saved locally.', { id: toastId });
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleCancel = () => {
-        // Reset form when canceling
+        // Clear local storage when canceling
+        localStorage.removeItem('tempNote');
+        
+        // Reset form
         setNoteData({
             title: '',
             content: '',

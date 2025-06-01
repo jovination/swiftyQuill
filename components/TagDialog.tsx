@@ -15,6 +15,7 @@ import { IoAddOutline } from "react-icons/io5"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
  function TagDialog() {
   const router = useRouter()
@@ -27,6 +28,7 @@ import { Loader2 } from "lucide-react"
     e.preventDefault()
     setIsLoading(true)
     setError("")
+    const toastId = toast.loading('Creating tag...')
     
     try {
       const response = await fetch('/api/tags', {
@@ -45,9 +47,12 @@ import { Loader2 } from "lucide-react"
       setOpen(false)
       setName("")
       router.refresh()
+      toast.success('Tag created successfully', { id: toastId })
     } catch (error) {
       console.error('Error creating tag:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create tag')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create tag'
+      setError(errorMessage)
+      toast.error(errorMessage, { id: toastId })
     } finally {
       setIsLoading(false)
     }

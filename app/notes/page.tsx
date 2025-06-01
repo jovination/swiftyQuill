@@ -6,6 +6,7 @@ import { IoSearchOutline } from "react-icons/io5";
 import { MdOutlineKeyboardCommandKey } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { FiSend } from "react-icons/fi";
+import { Toaster } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ import { IoAddOutline } from "react-icons/io5";
 import Link from "next/link";
 import Navbar from "@/components/Navbar"
 import TagDialog from "@/components/TagDialog"
-import NotesList from "@/components/NotesList"
+import NotesListWithStorage from "@/components/NotesListWithStorage"
 import { ImSpinner8 } from "react-icons/im";
 import { Suspense } from 'react'
 
@@ -106,6 +107,7 @@ export default async function NotesPage({
 
   return (
     <div className="max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col items-center">
+      <Toaster position="top-right" />
       <Navbar />
       <div className="md:hidden max-w-[650px] w-full h-10 bg-black/5 rounded-xl px-3 flex items-center justify-between mt-6">
         <div className="flex items-center gap-1">
@@ -139,7 +141,7 @@ export default async function NotesPage({
           <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
         </div>
       }>
-        <NotesList 
+        <NotesListWithStorage 
           initialNotes={notes.map(note => ({
             ...note,
             updatedAt: note.updatedAt.toISOString(),
