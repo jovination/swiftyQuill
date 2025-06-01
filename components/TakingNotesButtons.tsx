@@ -212,7 +212,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             </div>
         )}
 
-        <div className="bg-background max-w-[352px] w-full h-[64px] rounded-3xl border border-[#EBEBEB]/50 shadow-md p-2 flex items-center justify-between">
+        <div className="bg-background max-w-[360px] w-full h-[64px] rounded-3xl border border-[#EBEBEB]/50 shadow-md p-2 flex items-center justify-between">
             <Button
                 className="h-[48px] rounded-[20px] bg-black/5 text-black hover:bg-black/10"
             >
