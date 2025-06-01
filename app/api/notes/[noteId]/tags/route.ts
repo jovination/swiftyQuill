@@ -16,14 +16,11 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const noteId = await params.noteId
+    const { noteId } = await Promise.resolve(params)
     const { tagId } = await request.json()
 
     if (!tagId) {
-      return NextResponse.json(
-        { error: 'Tag ID is required' },
-        { status: 400 }
-      )
+      return new NextResponse('Missing tagId', { status: 400 })
     }
 
     // Find user by email
@@ -76,10 +73,7 @@ export async function POST(
     return NextResponse.json(noteTag)
   } catch (error) {
     console.error('Error adding tag:', error)
-    return NextResponse.json(
-      { error: 'Failed to add tag' },
-      { status: 500 }
-    )
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
 
@@ -88,7 +82,7 @@ export async function GET(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const noteId = await params.noteId
+    const { noteId } = await Promise.resolve(params)
 
     const noteTags = await prisma.noteTag.findMany({
       where: {
@@ -102,9 +96,6 @@ export async function GET(
     return NextResponse.json(noteTags)
   } catch (error) {
     console.error('Error fetching note tags:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch note tags' },
-      { status: 500 }
-    )
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 } 

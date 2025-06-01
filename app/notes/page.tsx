@@ -37,6 +37,8 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar"
 import TagDialog from "@/components/TagDialog"
 import NotesList from "@/components/NotesList"
+import { ImSpinner8 } from "react-icons/im";
+import { Suspense } from 'react'
 
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { IoCopyOutline } from "react-icons/io5";
@@ -85,29 +87,10 @@ export default async function NotesPage({
     ]
   });
 
-  // Fetch user's notes with tag filtering
+  // Fetch all user's notes
   const notes = await prisma.note.findMany({
     where: {
       userId: user.id,
-      ...(currentTag !== 'All' ? {
-        OR: [
-          {
-            tags: {
-              some: {
-                tag: {
-                  name: currentTag,
-                  OR: [
-                    { isDefault: true },
-                    { userId: user.id }
-                  ]
-                }
-              }
-            }
-          },
-          ...(currentTag === 'Starred' ? [{ isStarred: true }] : []),
-          ...(currentTag === 'Shared' ? [{ isShared: true }] : [])
-        ]
-      } : {})
     },
     include: {
       tags: {
@@ -151,14 +134,20 @@ export default async function NotesPage({
         <TagDialog />
       </div>
       
-      <NotesList 
-        initialNotes={notes.map(note => ({
-          ...note,
-          updatedAt: note.updatedAt.toISOString(),
-          createdAt: note.createdAt.toISOString()
-        }))} 
-        currentTag={currentTag} 
-      />
+      <Suspense fallback={
+        <div className="max-w-3xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
+          <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
+        </div>
+      }>
+        <NotesList 
+          initialNotes={notes.map(note => ({
+            ...note,
+            updatedAt: note.updatedAt.toISOString(),
+            createdAt: note.createdAt.toISOString()
+          }))} 
+          currentTag={currentTag} 
+        />
+      </Suspense>
       
       <div className="w-full flex justify-center fixed bottom-6 left-1/2 transform -translate-x-1/2">
         <TakingNotesButtons />

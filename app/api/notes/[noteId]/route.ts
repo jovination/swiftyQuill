@@ -6,7 +6,7 @@ export async function DELETE(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const noteId = await params.noteId
+    const { noteId } = await Promise.resolve(params)
 
     // Delete the note
     await prisma.note.delete({
@@ -18,10 +18,7 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting note:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete note' },
-      { status: 500 }
-    )
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
 
@@ -30,7 +27,7 @@ export async function GET(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const noteId = await params.noteId
+    const { noteId } = await Promise.resolve(params)
 
     const note = await prisma.note.findUnique({
       where: {
@@ -46,19 +43,13 @@ export async function GET(
     })
 
     if (!note) {
-      return NextResponse.json(
-        { error: 'Note not found' },
-        { status: 404 }
-      )
+      return new NextResponse('Note not found', { status: 404 })
     }
 
     return NextResponse.json(note)
   } catch (error) {
     console.error('Error fetching note:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch note' },
-      { status: 500 }
-    )
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
 
@@ -67,7 +58,7 @@ export async function PATCH(
   { params }: { params: { noteId: string } }
 ) {
   try {
-    const noteId = await params.noteId
+    const { noteId } = await Promise.resolve(params)
     const body = await request.json()
 
     const note = await prisma.note.update({
@@ -91,9 +82,6 @@ export async function PATCH(
     return NextResponse.json(note)
   } catch (error) {
     console.error('Error updating note:', error)
-    return NextResponse.json(
-      { error: 'Failed to update note' },
-      { status: 500 }
-    )
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 } 

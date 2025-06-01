@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { FiSend } from "react-icons/fi"
 import { HiOutlineDotsHorizontal } from "react-icons/hi"
 import { IoCopyOutline, IoAddSharp } from "react-icons/io5"
@@ -28,6 +28,7 @@ interface Note {
   content: string
   updatedAt: string
   isStarred: boolean
+  isShared: boolean
   tags: {
     tag: {
       id: string
@@ -55,6 +56,17 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
   const [updatingTags, setUpdatingTags] = useState<{ noteId: string; tagId: string } | null>(null)
 
+  // Filter notes based on currentTag
+  const filteredNotes = useMemo(() => {
+    if (currentTag === 'All') return notes;
+    
+    return notes.filter(note => {
+      if (currentTag === 'Starred') return note.isStarred;
+      if (currentTag === 'Shared') return note.isShared;
+      return note.tags.some(({ tag }) => tag.name === currentTag);
+    });
+  }, [notes, currentTag]);
+
   const fetchTags = async () => {
     setIsLoadingTags(true)
     try {
@@ -81,7 +93,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       })
       if (!response.ok) throw new Error('Failed to add tag')
       
-      // Update the note in the local state
+      // Optimistically update the note in the local state
       setNotes(notes.map(note => {
         if (note.id === noteId) {
           const tag = availableTags.find(t => t.id === tagId)
@@ -96,6 +108,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       }))
     } catch (error) {
       console.error('Error adding tag:', error)
+      // Revert the optimistic update on error
+      await refreshNotes()
     } finally {
       setUpdatingTags(null)
     }
@@ -109,7 +123,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       })
       if (!response.ok) throw new Error('Failed to remove tag')
       
-      // Update the note in the local state
+      // Optimistically update the note in the local state
       setNotes(notes.map(note => {
         if (note.id === noteId) {
           return {
@@ -121,6 +135,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       }))
     } catch (error) {
       console.error('Error removing tag:', error)
+      // Revert the optimistic update on error
+      await refreshNotes()
     } finally {
       setUpdatingTags(null)
     }
@@ -184,13 +200,13 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
     )
   }
 
-  if (notes.length === 0) {
+  if (filteredNotes.length === 0) {
     return (
       <div className="text-center py-8 mt-4">
-        <p className="text-muted-foreground">You don't have any notes yet.</p>
+        <p className="text-muted-foreground">No notes found for this tag.</p>
         <p className="mt-2">
           <a href="/notes/new" className="text-primary hover:underline">
-            Create your first note
+            Create a new note
           </a>
         </p>
       </div>
@@ -199,7 +215,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   return (
     <div className="max-w-3xl w-full space-y-4 mt-10">
-      {notes.map((note) => (
+      {filteredNotes.map((note) => (
         <div 
           key={note.id} 
           className={`border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900 relative ${

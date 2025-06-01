@@ -6,8 +6,7 @@ export async function DELETE(
   { params }: { params: { noteId: string; tagId: string } }
 ) {
   try {
-    const noteId = await params.noteId
-    const tagId = await params.tagId
+    const { noteId, tagId } = await Promise.resolve(params)
 
     // Remove the tag from the note
     await prisma.noteTag.delete({
@@ -22,9 +21,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error removing tag:', error)
-    return NextResponse.json(
-      { error: 'Failed to remove tag' },
-      { status: 500 }
-    )
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 } 
