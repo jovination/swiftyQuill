@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { FaMicrophone } from "react-icons/fa6";
 import { ImSpinner8 } from "react-icons/im";
 import { toast } from "sonner";
+// Remove the direct Supabase import since we'll use the API route
 
 interface NoteData {
     title: string;
@@ -30,6 +31,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
         imageUrl: null
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
 
     const toggleInputField = () => {
         setIsInputVisible(!isInputVisible);
@@ -111,13 +113,45 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
         setIsInputVisible(false);
     };
 
-    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            // Here you would typically upload the file and get a URL
-            // For now, we'll just create a local URL for preview
-            const imageUrl = URL.createObjectURL(file);
-            handleInputChange('imageUrl', imageUrl);
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please upload an image file');
+            return;
+        }
+
+        // Validate file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File size must be less than 5MB');
+            return;
+        }
+
+        setIsUploadingImage(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const { publicUrl } = await response.json();
+            handleInputChange('imageUrl', publicUrl);
+            toast.success('Image uploaded successfully');
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            toast.error('Failed to upload image');
+        } finally {
+            setIsUploadingImage(false);
         }
     };
 
@@ -152,7 +186,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                         <img 
                             src={noteData.imageUrl} 
                             alt="Note attachment" 
-                            className="max-w-full h-auto max-h-32 rounded-lg object-cover"
+                            className="max-w-full h-auto max-h-32 rounded-xl object-cover"
                         />
                         <button
                             onClick={() => handleInputChange('imageUrl', null)}
@@ -165,22 +199,27 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                 
                 {/* Bottom controls */}
                 <div className="flex items-center justify-between pt-2">
-                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-[#0D0D0D]/5 px-4 text-black transition hover:bg-[#0D0D0D]/10">
-                        <svg className="h-5 w-5" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
-                            <title />
-                            <g data-name="Layer 2" id="Layer_2">
-                                <g data-name="Layer 1" id="Layer_1-2">
-                                    <path d="M27.32,76.5A16.37,16.37,0,0,1,11.83,65.34l-.15-.5a16,16,0,0,1-.76-4.74V30.3L.32,65.7a9.93,9.93,0,0,0,7,12l67.59,18.1a10,10,0,0,0,2.52.32A9.75,9.75,0,0,0,86.83,89L90.77,76.5Z"/>
-                                    <path d="M39.34,30.6a8.74,8.74,0,1,0-8.74-8.74A8.75,8.75,0,0,0,39.34,30.6Z"/>
-                                    <path d="M94,0H28.41A10.94,10.94,0,0,0,17.48,10.93V59A10.94,10.94,0,0,0,28.41,69.94H94A10.94,10.94,0,0,0,104.9,59V10.93A10.94,10.94,0,0,0,94,0ZM28.41,8.74H94a2.19,2.19,0,0,1,2.19,2.19V42L82.35,25.85a7.83,7.83,0,0,0-5.86-2.69,7.64,7.64,0,0,0-5.84,2.76L54.42,45.4l-5.29-5.28a7.67,7.67,0,0,0-10.84,0L26.22,52.19V10.93A2.19,2.19,0,0,1,28.41,8.74Z"/>
+                    <label className={`flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-[#0D0D0D]/5 px-4 text-black transition hover:bg-[#0D0D0D]/10 ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        {isUploadingImage ? (
+                            <ImSpinner8 className="animate-spin h-5 w-5" />
+                        ) : (
+                            <svg className="h-5 w-5" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
+                                <title />
+                                <g data-name="Layer 2" id="Layer_2">
+                                    <g data-name="Layer 1" id="Layer_1-2">
+                                        <path d="M27.32,76.5A16.37,16.37,0,0,1,11.83,65.34l-.15-.5a16,16,0,0,1-.76-4.74V30.3L.32,65.7a9.93,9.93,0,0,0,7,12l67.59,18.1a10,10,0,0,0,2.52.32A9.75,9.75,0,0,0,86.83,89L90.77,76.5Z"/>
+                                        <path d="M39.34,30.6a8.74,8.74,0,1,0-8.74-8.74A8.75,8.75,0,0,0,39.34,30.6Z"/>
+                                        <path d="M94,0H28.41A10.94,10.94,0,0,0,17.48,10.93V59A10.94,10.94,0,0,0,28.41,69.94H94A10.94,10.94,0,0,0,104.9,59V10.93A10.94,10.94,0,0,0,94,0ZM28.41,8.74H94a2.19,2.19,0,0,1,2.19,2.19V42L82.35,25.85a7.83,7.83,0,0,0-5.86-2.69,7.64,7.64,0,0,0-5.84,2.76L54.42,45.4l-5.29-5.28a7.67,7.67,0,0,0-10.84,0L26.22,52.19V10.93A2.19,2.19,0,0,1,28.41,8.74Z"/>
+                                    </g>
                                 </g>
-                            </g>
-                        </svg>
+                            </svg>
+                        )}
                         <Input 
                             type="file" 
                             className="hidden" 
                             accept="image/*"
                             onChange={handleImageUpload}
+                            disabled={isUploadingImage}
                         />
                     </label>
                     <div className="flex items-center gap-2">

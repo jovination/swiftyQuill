@@ -22,6 +22,7 @@ import {
 import { ImSpinner8 } from "react-icons/im"
 import { RiDeleteBinLine } from "react-icons/ri";
 import { toast } from "sonner"
+import NoteViewModal from "./NoteViewModal"
 
 interface Note {
   id: string
@@ -56,6 +57,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   const [isLoadingTags, setIsLoadingTags] = useState(false)
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
   const [updatingTags, setUpdatingTags] = useState<{ noteId: string; tagId: string } | null>(null)
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Filter notes based on currentTag
   const filteredNotes = useMemo(() => {
@@ -251,9 +254,15 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
           </div>
          
           <div className="flex justify-between items-center">
-            <a href={`/notes/${note.id}`} className="mt-3 text-primary text-sm hover:underline block">
+            <button
+              onClick={() => {
+                setSelectedNote(note)
+                setIsModalOpen(true)
+              }}
+              className="mt-3 text-primary text-sm hover:underline block"
+            >
               View Note →
-            </a>
+            </button>
             <div className="flex gap-2 items-center">
               <span className="flex items-center text-sm px-3 py-1 bg-black/5 rounded-full gap-1 cursor-pointer hover:black/20 transition-all duration-300">
                 <FiSend />
@@ -339,6 +348,16 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
         <div className="fixed bottom-20 right-4 bg-white rounded-full p-2 shadow-lg">
           <ImSpinner8 className="animate-spin text-xl text-gray-400" />
         </div>
+      )}
+      {isModalOpen && selectedNote && (
+        <NoteViewModal
+          note={selectedNote}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false)
+            setSelectedNote(null)
+          }}
+        />
       )}
     </div>
   )
