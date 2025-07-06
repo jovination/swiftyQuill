@@ -114,7 +114,11 @@ function ProfilePortal() {
                     <IoIosArrowForward className="text-sm text-gray-500" />
                 </div>
 
-                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10" onClick={() => signOut()}>
+                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10" onClick={() => {
+                    setTimeout(() => {
+                        signOut({ callbackUrl: '/' });
+                    }, 500);
+                }}>
                     <span className="text-sm">Sign out</span>
                     <IoIosArrowForward className="text-sm text-gray-500" />
                 </div>
