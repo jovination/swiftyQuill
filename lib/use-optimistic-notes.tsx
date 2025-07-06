@@ -1,6 +1,6 @@
 "use client"; // Add this line
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode, useMemo } from 'react';
 import { offlineStorage, syncService, OfflineNote, localStorageOfflineNotes } from './offline-storage';
 
 export interface OptimisticNote {
@@ -106,6 +106,53 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
 
     initOfflineStorage();
   }, [initialNotes]);
+
+  const refreshNotes = useCallback(async () => {
+    console.log('Refreshing notes...');
+    try {
+      const response = await fetch('/api/notes');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const serverNotes: OptimisticNote[] = await response.json();
+
+      // Get offline notes, excluding those marked for deletion or already synced
+      const offlineNotes = await offlineStorage.getOfflineNotes();
+      const localStorageNotes = localStorageOfflineNotes.get();
+
+      const allNotesMap = new Map<string, OptimisticNote>();
+
+      // 1. Add all server notes to the map.
+      serverNotes.forEach(note => {
+        allNotesMap.set(note.id, { ...note, syncStatus: 'synced', isTemp: false, isOffline: false });
+      });
+
+      // 2. Add offline notes. If an offline note has the same ID as a server note,
+      //    and its syncStatus is NOT 'synced' (e.g., 'pending', 'failed', 'syncing'),
+      //    it should override the server note to show its current local state.
+      //    If the offline note's ID is 'temp-something', it's always a new local note.
+      //    If an offline note with a real ID has 'synced' status, it's a stale duplicate, so the server version wins.
+      [...offlineNotes, ...localStorageNotes].forEach(note => {
+        const existingNote = allNotesMap.get(note.id);
+        if (note.id.startsWith('temp-') || (existingNote && existingNote.syncStatus !== 'synced') || !existingNote) {
+          allNotesMap.set(note.id, {
+            ...note,
+            isTemp: note.syncStatus !== 'synced',
+            isOffline: true,
+            tags: note.tags.map(tagName => ({
+              tag: { id: `temp-${tagName}`, name: tagName }
+            }))
+          });
+        }
+      });
+
+      setNotes(Array.from(allNotesMap.values()));
+      console.log('Notes refreshed.', Array.from(allNotesMap.values()).length, 'notes');
+
+    } catch (error) {
+      console.error('Failed to refresh notes:', error);
+    }
+  }, []);
 
   // Listen for online/offline status
   useEffect(() => {
@@ -301,50 +348,6 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
       return { success: false, error: error, message: 'Failed to delete note.' };
     }
   }, [notes, refreshNotes]);
-
-  const refreshNotes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/notes');
-      if (!response.ok) throw new Error('Failed to fetch notes');
-      const serverNotes = await response.json();
-
-      const allNotesMap = new Map<string, OptimisticNote>();
-
-      // 1. Add all server notes first. These are the canonical synced notes.
-      serverNotes.forEach((note: OptimisticNote) => {
-        allNotesMap.set(note.id, { ...note, syncStatus: 'synced', isTemp: false, isOffline: false });
-      });
-
-      // 2. Add offline notes, prioritizing unsynced local changes/new notes.
-      const offlineNotes = await offlineStorage.getOfflineNotes();
-      const localStorageNotes = localStorageOfflineNotes.get();
-
-      [...offlineNotes, ...localStorageNotes].forEach(note => {
-        const existingNote = allNotesMap.get(note.id);
-
-        if (note.id.startsWith('temp-') || (existingNote && existingNote.syncStatus !== 'synced') || !existingNote) {
-          // This is a new offline note (temp ID), or an offline note that represents a local unsynced change
-          // (e.g., pending, failed, or a synced note that was locally modified before a pull).
-          // Or there's no existing server note with this ID.
-          allNotesMap.set(note.id, {
-            ...note,
-            isTemp: note.syncStatus !== 'synced',
-            isOffline: true,
-            tags: note.tags.map(tagName => ({
-              tag: { id: `temp-${tagName}`, name: tagName }
-            }))
-          });
-        }
-      });
-
-      setNotes(Array.from(allNotesMap.values()));
-    } catch (error) {
-      console.error('Error refreshing notes:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   const contextValue = useMemo(() => ({
     notes,
