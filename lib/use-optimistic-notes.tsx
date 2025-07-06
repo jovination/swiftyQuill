@@ -333,6 +333,7 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
           if (!response.ok) {
             throw new Error('Failed to delete synced note from server.');
           }
+          refreshNotes(); // <--- Add this line to refresh notes after successful deletion
           return { success: true, message: 'Note deleted from server.' };
         case 'syncing':
           // Disallow deletion during syncing and revert UI
