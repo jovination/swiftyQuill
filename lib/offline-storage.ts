@@ -100,6 +100,32 @@ class OfflineStorageService {
     });
   }
 
+  async deleteOfflineNote(noteId: string): Promise<void> {
+    if (!this.db) await this.init();
+
+    const note = await this.getOfflineNote(noteId);
+
+    if (!note) {
+      console.warn(`Attempted to delete non-existent offline note: ${noteId}`);
+      return;
+    }
+
+    switch (note.syncStatus) {
+      case 'pending':
+      case 'failed':
+        console.log(`Deleting local note (status: ${note.syncStatus}): ${noteId}`);
+        return this.removeOfflineNote(noteId);
+      case 'synced':
+        console.warn(`Deletion of synced note must be done via server call: ${noteId}`);
+        throw new Error('Synced notes can only be deleted via the server.');
+      case 'syncing':
+        console.warn(`Cannot delete note while syncing: ${noteId}`);
+        throw new Error('Cannot delete note while syncing.');
+      default:
+        throw new Error(`Unknown sync status: ${note.syncStatus}`);
+    }
+  }
+
   async updateNoteStatus(noteId: string, status: OfflineNote['syncStatus'], retryCount?: number): Promise<void> {
     if (!this.db) await this.init();
 

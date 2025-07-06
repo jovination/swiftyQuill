@@ -156,10 +156,10 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
     
     // Show appropriate loading message based on note type
     let loadingMessage = 'Deleting note...'
-    if (isTempNote) {
-      loadingMessage = 'Removing offline note...'
-    } else if (!isNoteSynced) {
+    if (noteToDelete?.syncStatus === 'pending' || noteToDelete?.syncStatus === 'failed') {
       loadingMessage = 'Removing unsynced note...'
+    } else if (noteToDelete?.syncStatus === 'synced') {
+      loadingMessage = 'Deleting synced note...'
     }
     
     const toastId = toast.loading(loadingMessage)
@@ -167,24 +167,18 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       const result = await deleteNoteFromContext(noteId)
       
       if (result.success) {
-        // Remove the note from the local state immediately
-        setNotes(notes.filter(note => note.id !== noteId))
+        // Remove the note from the local state immediately (already done optimistically in context)
+        // setNotes(notes.filter(note => note.id !== noteId)) // This line is no longer needed here
         
         // Show appropriate success message
-        let successMessage = 'Note deleted successfully'
-        if (isTempNote) {
-          successMessage = 'Offline note removed'
-        } else if (!isNoteSynced) {
-          successMessage = 'Unsynced note removed from local storage'
-        }
-        
-        toast.success(successMessage, { id: toastId })
+        toast.success(result.message || 'Note deleted successfully', { id: toastId })
       } else {
-        throw new Error('Failed to delete note')
+        throw new Error(result.message || 'Failed to delete note')
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting note:', error)
-      toast.error('Failed to delete note', { id: toastId })
+      const errorMessage = (error instanceof Error) ? error.message : 'Failed to delete note';
+      toast.error(errorMessage, { id: toastId })
     } finally {
       setDeletingNoteId(null)
     }
@@ -362,6 +356,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
                         e.preventDefault();
                         deleteNote(note.id);
                       }}
+                      disabled={note.syncStatus === 'syncing' || deletingNoteId === note.id}
+                      className={note.syncStatus === 'syncing' ? 'cursor-not-allowed opacity-50' : ''}
                     >
                       Delete Note <MenubarShortcut>
                         <RiDeleteBinLine className="text-md text-pink-300" />

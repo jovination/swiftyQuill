@@ -40,8 +40,9 @@ interface OptimisticNotesContextType {
     imageUrl?: string | null;
     isStarred?: boolean;
     isShared?: boolean;
+    tags?: string[];
   }) => Promise<{ success: boolean; note?: OptimisticNote; error?: any }>;
-  deleteNote: (noteId: string) => Promise<{ success: boolean; error?: any }>;
+  deleteNote: (noteId: string) => Promise<{ success: boolean; error?: any; message?: string }>;
   refreshNotes: () => Promise<void>;
   setNotes: React.Dispatch<React.SetStateAction<OptimisticNote[]>>;
 }
@@ -63,37 +64,48 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
           await syncService.registerServiceWorker();
         }
         
-        // Load offline notes from IndexedDB
+        const allNotesMap = new Map<string, OptimisticNote>();
+
+        // 1. Add all initialNotes (server notes) to the map. These are the primary source.
+        initialNotes.forEach(note => {
+          allNotesMap.set(note.id, { ...note, syncStatus: 'synced', isTemp: false, isOffline: false });
+        });
+
+        // 2. Add offline notes. If an offline note has the same ID as a server note,
+        //    and its syncStatus is NOT 'synced' (e.g., 'pending', 'failed', 'syncing'),
+        //    it should override the server note to show its current local state.
+        //    If the offline note's ID is 'temp-something', it's always a new local note.
+        //    If an offline note with a real ID has 'synced' status, it's a stale duplicate, so the server version wins.
+
         const offlineNotes = await offlineStorage.getOfflineNotes();
-        const optimisticOfflineNotes = offlineNotes.map(note => ({
-          ...note,
-          isTemp: true,
-          tags: note.tags.map(tagName => ({
-            tag: { id: `temp-${tagName}`, name: tagName }
-          }))
-        }));
-        
-        // --- Load offline notes from localStorage fallback ---
-        const localNotes = localStorageOfflineNotes.get();
-        const optimisticLocalNotes = localNotes.map(note => ({
-          ...note,
-          isTemp: true,
-          tags: note.tags.map(tagName => ({
-            tag: { id: `temp-${tagName}`, name: tagName }
-          }))
-        }));
-        // --- end localStorage loading ---
-        
-        // Combine all offline notes and add to UI
-        const allOfflineNotes = [...optimisticOfflineNotes, ...optimisticLocalNotes];
-        setNotes(prev => [...allOfflineNotes, ...prev]);
+        const localStorageNotes = localStorageOfflineNotes.get();
+
+        [...offlineNotes, ...localStorageNotes].forEach(note => {
+          const existingNote = allNotesMap.get(note.id);
+
+          if (note.id.startsWith('temp-') || (existingNote && existingNote.syncStatus !== 'synced') || !existingNote) {
+            // This is a new offline note (temp ID), or an offline note that represents a local unsynced change
+            // (e.g., pending, failed, or a synced note that was locally modified before a pull).
+            // Or there's no existing server note with this ID.
+            allNotesMap.set(note.id, {
+              ...note,
+              isTemp: note.syncStatus !== 'synced',
+              isOffline: true,
+              tags: note.tags.map(tagName => ({
+                tag: { id: `temp-${tagName}`, name: tagName }
+              }))
+            });
+          }
+        });
+
+        setNotes(Array.from(allNotesMap.values()));
       } catch (error) {
         console.error('Failed to initialize offline storage:', error);
       }
     };
 
     initOfflineStorage();
-  }, []);
+  }, [initialNotes]);
 
   // Listen for online/offline status
   useEffect(() => {
@@ -118,10 +130,9 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
     const handleNoteSynced = (event: CustomEvent) => {
       const { noteId } = event.detail;
       
+      // Remove the optimistically added note and refresh from server
       setNotes(prev => prev.filter(note => note.id !== noteId));
-      
-      // Refresh notes from server
-      window.dispatchEvent(new Event('noteCreated'));
+      refreshNotes(); // Fetch the latest state from the server
     };
 
     window.addEventListener('noteSynced', handleNoteSynced as EventListener);
@@ -129,7 +140,7 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
     return () => {
       window.removeEventListener('noteSynced', handleNoteSynced as EventListener);
     };
-  }, []);
+  }, [refreshNotes]);
 
   // Create note with optimistic UI
   const createNote = useCallback(async (noteData: {
@@ -155,6 +166,7 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
       isShared: noteData.isShared || false,
       isTemp: true,
       syncStatus: 'pending',
+      isOffline: true,
       tags: (noteData.tags || []).map(tagName => ({
         tag: { id: `temp-${tagName}`, name: tagName }
       }))
@@ -178,7 +190,7 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
         
         // Replace optimistic note with real note
         setNotes(prev => prev.map(note => 
-          note.id === tempId ? { ...savedNote, syncStatus: 'synced' } : note
+          note.id === tempId ? { ...savedNote, syncStatus: 'synced', isTemp: false, isOffline: false } : note
         ));
         
         return { success: true, note: savedNote };
@@ -188,7 +200,7 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
     } catch (error) {
       console.error('Error saving note:', error);
       
-      // Save to offline storage
+      // Save to offline storage with pending status
       const offlineNote: Omit<OfflineNote, 'syncStatus' | 'retryCount'> = {
         id: tempId,
         title: noteData.title,
@@ -198,27 +210,16 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
         isShared: noteData.isShared || false,
         tags: noteData.tags || [],
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       };
-
       await offlineStorage.saveOfflineNote(offlineNote);
-      // --- Also save to localStorage as backup ---
-      try {
-        localStorageOfflineNotes.save({
-          ...offlineNote,
-          syncStatus: 'pending',
-          retryCount: 0
-        });
-      } catch (e) {
-        // Ignore localStorage errors
-      }
-      // --- end localStorage backup ---
-      // Update note status to pending
+      
+      // Update optimistic note to reflect offline status
       setNotes(prev => prev.map(note => 
-        note.id === tempId ? { ...note, syncStatus: 'pending' } : note
+        note.id === tempId ? { ...note, syncStatus: 'pending', isOffline: true } : note
       ));
 
-      return { success: false, note: optimisticNote, offline: true };
+      return { success: false, offline: true, note: optimisticNote };
     }
   }, []);
 
@@ -230,19 +231,16 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
     isStarred?: boolean;
     isShared?: boolean;
   }) => {
-    // Optimistically update the note
-    setNotes(prev => prev.map(note => 
-      note.id === noteId 
-        ? { ...note, ...updates, updatedAt: new Date().toISOString() }
-        : note
-    ));
+    setNotes(prevNotes =>
+      prevNotes.map(note =>
+        note.id === noteId ? { ...note, ...updates } : note
+      )
+    );
 
     try {
-      const response = await fetch(`/api/notes/${noteId}`, {
+      const response = await fetch(`/api/notes/${noteId}` , {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
 
@@ -251,140 +249,102 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
       }
 
       const updatedNote = await response.json();
-      setNotes(prev => prev.map(note => 
-        note.id === noteId ? { ...updatedNote, syncStatus: 'synced' } : note
-      ));
-
       return { success: true, note: updatedNote };
     } catch (error) {
       console.error('Error updating note:', error);
       // Revert optimistic update on error
-      await refreshNotes(); // Re-fetch notes to revert to actual state
-      return { success: false, error };
+      refreshNotes(); // Re-fetch notes to revert to actual state
+      return { success: false, error: error };
     }
-  }, []);
+  }, [refreshNotes]);
 
-  // Delete note with optimistic UI
+  // Delete note with sync status logic
   const deleteNote = useCallback(async (noteId: string) => {
-    // Optimistically remove the note
+    const noteToDelete = notes.find(note => note.id === noteId);
+
+    if (!noteToDelete) {
+      console.warn(`Attempted to delete non-existent note: ${noteId}`);
+      return { success: false, message: 'Note not found.' };
+    }
+
+    // Optimistically remove the note from the UI
     setNotes(prev => prev.filter(note => note.id !== noteId));
 
     try {
-      // Check if the note is a temporary/offline note
-      const isTempNote = noteId.startsWith('temp-');
-
-      if (!isOnline || isTempNote) {
-        // If offline or a temp note, delete from local storage only
-        await offlineStorage.removeOfflineNote(noteId);
-        localStorageOfflineNotes.remove(noteId);
-        return { success: true };
-      } else {
-        // If online and a synced note, delete from server
-        const response = await fetch(`/api/notes/${noteId}`, {
-          method: 'DELETE',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete note from server');
-        }
-
-        // Remove from local storage after successful server deletion
-        await offlineStorage.removeOfflineNote(noteId);
-        localStorageOfflineNotes.remove(noteId);
-        
-        return { success: true };
+      switch (noteToDelete.syncStatus) {
+        case 'pending':
+        case 'failed':
+          // Delete locally
+          await offlineStorage.deleteOfflineNote(noteId);
+          localStorageOfflineNotes.remove(noteId); // Ensure localStorage fallback is also cleared
+          return { success: true, message: 'Note deleted locally.' };
+        case 'synced':
+          // Delete via server API
+          const response = await fetch(`/api/notes/${noteId}`, {
+            method: 'DELETE',
+          });
+          if (!response.ok) {
+            throw new Error('Failed to delete synced note from server.');
+          }
+          return { success: true, message: 'Note deleted from server.' };
+        case 'syncing':
+          // Disallow deletion during syncing and revert UI
+          setNotes(prev => [noteToDelete, ...prev]); // Revert optimistic update
+          return { success: false, message: 'Cannot delete note while syncing.' };
+        default:
+          setNotes(prev => [noteToDelete, ...prev]); // Revert optimistic update
+          return { success: false, message: `Unknown sync status: ${noteToDelete.syncStatus}` };
       }
     } catch (error) {
       console.error('Error deleting note:', error);
-      // Revert optimistic update on error
-      await refreshNotes(); // Re-fetch notes to revert to actual state
-      return { success: false, error };
+      setNotes(prev => [noteToDelete, ...prev]); // Revert optimistic update on error
+      return { success: false, error: error, message: 'Failed to delete note.' };
     }
-  }, [isOnline]);
+  }, [notes, refreshNotes]);
 
-  // Refresh notes from server and offline storage
   const refreshNotes = useCallback(async () => {
+    setIsLoading(true);
     try {
-      // Fetch notes from server
       const response = await fetch('/api/notes');
-      if (!response.ok) {
-        throw new Error('Failed to fetch notes from server');
-      }
-      const serverNotes: OptimisticNote[] = await response.json();
+      if (!response.ok) throw new Error('Failed to fetch notes');
+      const serverNotes = await response.json();
 
-      // Load offline notes from IndexedDB
-      const offlineNotes = await offlineStorage.getOfflineNotes();
-      const optimisticOfflineNotes = offlineNotes.map(note => ({
-        ...note,
-        isTemp: true,
-        isOffline: true,
-        tags: note.tags.map(tagName => ({
-          tag: { id: `temp-${tagName}`, name: tagName }
-        }))
-      }));
-
-      // Load offline notes from localStorage fallback
-      const localNotes = localStorageOfflineNotes.get();
-      const optimisticLocalNotes = localNotes.map(note => ({
-        ...note,
-        isTemp: true,
-        isOffline: true,
-        tags: note.tags.map(tagName => ({
-          tag: { id: `temp-${tagName}`, name: tagName }
-        }))
-      }));
-      
-      // Combine and deduplicate: server notes take precedence, then IndexedDB, then localStorage
       const allNotesMap = new Map<string, OptimisticNote>();
 
-      // Add server notes
-      serverNotes.forEach(note => allNotesMap.set(note.id, { ...note, isTemp: false, isOffline: false }));
+      // 1. Add all server notes first. These are the canonical synced notes.
+      serverNotes.forEach((note: OptimisticNote) => {
+        allNotesMap.set(note.id, { ...note, syncStatus: 'synced', isTemp: false, isOffline: false });
+      });
 
-      // Add IndexedDB notes (if not already present from server)
-      optimisticOfflineNotes.forEach(note => {
-        if (!allNotesMap.has(note.id)) {
-          allNotesMap.set(note.id, note);
+      // 2. Add offline notes, prioritizing unsynced local changes/new notes.
+      const offlineNotes = await offlineStorage.getOfflineNotes();
+      const localStorageNotes = localStorageOfflineNotes.get();
+
+      [...offlineNotes, ...localStorageNotes].forEach(note => {
+        const existingNote = allNotesMap.get(note.id);
+
+        if (note.id.startsWith('temp-') || (existingNote && existingNote.syncStatus !== 'synced') || !existingNote) {
+          // This is a new offline note (temp ID), or an offline note that represents a local unsynced change
+          // (e.g., pending, failed, or a synced note that was locally modified before a pull).
+          // Or there's no existing server note with this ID.
+          allNotesMap.set(note.id, {
+            ...note,
+            isTemp: note.syncStatus !== 'synced',
+            isOffline: true,
+            tags: note.tags.map(tagName => ({
+              tag: { id: `temp-${tagName}`, name: tagName }
+            }))
+          });
         }
       });
 
-      // Add localStorage notes (if not already present)
-      optimisticLocalNotes.forEach(note => {
-        if (!allNotesMap.has(note.id)) {
-          allNotesMap.set(note.id, note);
-        }
-      });
-      
-      const combinedNotes = Array.from(allNotesMap.values());
-      setNotes(combinedNotes);
-
+      setNotes(Array.from(allNotesMap.values()));
     } catch (error) {
       console.error('Error refreshing notes:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
-
-  // Handle noteSynced event (from OfflineNotesManager)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const handleNoteSynced = () => {
-      // When a note is synced, refresh all notes to ensure UI consistency
-      refreshNotes();
-    };
-
-    window.addEventListener('noteSynced', handleNoteSynced as EventListener);
-    
-    return () => {
-      window.removeEventListener('noteSynced', handleNoteSynced as EventListener);
-    };
-  }, [refreshNotes]);
-
-  // Initial load of notes after offline storage is initialized
-  useEffect(() => {
-    // We already load notes in the initOfflineStorage effect, 
-    // but we need to ensure the initialNotes from server are also present.
-    // A full refresh will handle combining them.
-    refreshNotes();
-  }, [refreshNotes, initialNotes]);
 
   const contextValue = useMemo(() => ({
     notes,
@@ -394,7 +354,7 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
     deleteNote,
     refreshNotes,
     setNotes,
-  }), [notes, isOnline, createNote, updateNote, deleteNote, refreshNotes, setNotes]);
+  }), [notes, isOnline, createNote, updateNote, deleteNote, refreshNotes]);
 
   return (
     <OptimisticNotesContext.Provider value={contextValue}>
@@ -403,12 +363,10 @@ export function OptimisticNotesProvider({ children, initialNotes }: { children: 
   );
 }
 
-export function useOptimisticNotes(initialNotes?: OptimisticNote[]) {
+export function useOptimisticNotes() {
   const context = useContext(OptimisticNotesContext);
-  
   if (!context) {
     throw new Error('useOptimisticNotes must be used within an OptimisticNotesProvider');
   }
-  
   return context;
 }
