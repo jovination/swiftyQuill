@@ -257,7 +257,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
               <ImSpinner8 className="animate-spin text-2xl text-gray-400" />
             </div>
           )}
-          <div className=" flex items-center justify-betweentext-xs text-muted-foreground mb-1">
+          <div className=" flex items-center justify-between text-xs text-muted-foreground mb-1">
             <div className="flex items-center  gap-2">
               <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
               {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
