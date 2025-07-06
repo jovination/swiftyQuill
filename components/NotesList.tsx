@@ -258,7 +258,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
             </div>
           )}
           <div className=" flex items-center text-xs text-muted-foreground mb-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
               <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
               {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
             </div>
