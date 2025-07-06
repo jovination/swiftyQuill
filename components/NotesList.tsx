@@ -267,6 +267,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
               <SyncStatusIndicator 
                 status={note.syncStatus} 
                 isOnline={navigator.onLine}
+                isTemp={note.isTemp}
+                isOfflineNote={note.isOffline}
                 className="ml-2"
               />
             )}
