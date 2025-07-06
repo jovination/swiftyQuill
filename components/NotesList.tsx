@@ -224,7 +224,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
+      <div className="max-w-7xl w-full space-y-4 mt-5 flex justify-center items-center min-h-[200px]">
         <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
       </div>
     )
