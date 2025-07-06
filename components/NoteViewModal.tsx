@@ -2,21 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ImSpinner8 } from "react-icons/im"
 import { useState } from "react"
 import Image from "next/image"
+import { OptimisticNote } from "@/lib/use-optimistic-notes"
 
-interface Note {
-  id: string
-  title: string
-  content: string
-  updatedAt: string
-  isStarred: boolean
-  isShared: boolean
-  imageUrl?: string
-  tags: {
-    tag: {
-      id: string
-      name: string
-    }
-  }[]
+interface Note extends OptimisticNote {
+  // Extends OptimisticNote which already has all the required fields
 }
 
 interface NoteViewModalProps {

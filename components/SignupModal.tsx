@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react"; 
+import { Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react"; // Import signIn
 
-function SignupModal() {
+interface SignupModalProps {
+  onSuccess?: () => void;
+}
+
+function SignupModal({ onSuccess }: SignupModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); 
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); 
+    setLoading(true);
     setError("");
 
     try {
@@ -26,31 +29,30 @@ function SignupModal() {
         body: JSON.stringify({ email, password, username }),
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        // After successful registration, log the user in
-        const loginResponse = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
+        // After successful registration, log the user in using signIn
+        const result = await signIn("credentials", {
+          redirect: false, 
+          email,
+          password,
         });
 
-        if (loginResponse.ok) {
-          router.push("/notes");
+        if (result?.error) {
+          setError(result.error);
         } else {
-          setError("Registration successful but login failed. Please try logging in.");
+          if (onSuccess) {
+            onSuccess();
+          }
         }
       } else {
+        const data = await response.json();
         setError(data.message || "Registration failed");
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
       console.error("Registration error:", error);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 

@@ -1,0 +1,21 @@
+{
+  "name": "SwiftyQuill",
+  "short_name": "SwiftyQuill",
+  "description": "Fast, intuitive note-taking app with offline support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#58A942",
+  "icons": [
+    {
+      "src": "/swiftyquill.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/swiftyquill.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

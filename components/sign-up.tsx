@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import SignupModal from "@/components/SignupModal"
 
+interface SignUpProps {
+  onSuccess?: () => void;
+}
 
-
-function SignUp() {
+function SignUp({ onSuccess }: SignUpProps) {
   return (
     <div className="">
-    <SignupModal />
+    <SignupModal onSuccess={onSuccess} />
     </div>
   );
 }

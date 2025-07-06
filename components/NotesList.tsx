@@ -23,20 +23,11 @@ import { ImSpinner8 } from "react-icons/im"
 import { RiDeleteBinLine } from "react-icons/ri";
 import { toast } from "sonner"
 import NoteViewModal from "./NoteViewModal"
+import SyncStatusIndicator from "./SyncStatusIndicator"
+import { OptimisticNote, useOptimisticNotes } from "@/lib/use-optimistic-notes"
 
-interface Note {
-  id: string
-  title: string
-  content: string
-  updatedAt: string
-  isStarred: boolean
-  isShared: boolean
-  tags: {
-    tag: {
-      id: string
-      name: string
-    }
-  }[]
+interface Note extends OptimisticNote {
+  // Extends OptimisticNote which already has all the required fields
 }
 
 interface Tag {
@@ -59,6 +50,9 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   const [updatingTags, setUpdatingTags] = useState<{ noteId: string; tagId: string } | null>(null)
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Get the shared optimistic notes context
+  const { deleteNote: deleteNoteFromContext, updateNote: updateNoteFromContext, refreshNotes: refreshNotesFromContext } = useOptimisticNotes()
 
   // Filter notes based on currentTag
   const filteredNotes = useMemo(() => {
@@ -154,19 +148,40 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   const deleteNote = async (noteId: string) => {
     setDeletingNoteId(noteId)
-    const toastId = toast.loading('Deleting note...')
+    
+    // Get the note to check its sync status
+    const noteToDelete = notes.find(note => note.id === noteId)
+    const isNoteSynced = noteToDelete?.syncStatus === 'synced'
+    const isTempNote = noteId.startsWith('temp-')
+    
+    // Show appropriate loading message based on note type
+    let loadingMessage = 'Deleting note...'
+    if (isTempNote) {
+      loadingMessage = 'Removing offline note...'
+    } else if (!isNoteSynced) {
+      loadingMessage = 'Removing unsynced note...'
+    }
+    
+    const toastId = toast.loading(loadingMessage)
     try {
-      const response = await fetch(`/api/notes/${noteId}`, {
-        method: 'DELETE',
-      })
+      const result = await deleteNoteFromContext(noteId)
       
-      if (!response.ok) {
+      if (result.success) {
+        // Remove the note from the local state immediately
+        setNotes(notes.filter(note => note.id !== noteId))
+        
+        // Show appropriate success message
+        let successMessage = 'Note deleted successfully'
+        if (isTempNote) {
+          successMessage = 'Offline note removed'
+        } else if (!isNoteSynced) {
+          successMessage = 'Unsynced note removed from local storage'
+        }
+        
+        toast.success(successMessage, { id: toastId })
+      } else {
         throw new Error('Failed to delete note')
       }
-
-      // Remove the note from the local state immediately
-      setNotes(notes.filter(note => note.id !== noteId))
-      toast.success('Note deleted successfully', { id: toastId })
     } catch (error) {
       console.error('Error deleting note:', error)
       toast.error('Failed to delete note', { id: toastId })
@@ -178,10 +193,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   const refreshNotes = async () => {
     setIsRefreshing(true)
     try {
-      const response = await fetch(`/api/notes${currentTag !== 'All' ? `?tag=${currentTag}` : ''}`)
-      if (!response.ok) throw new Error('Failed to fetch notes')
-      const data = await response.json()
-      setNotes(data)
+      await refreshNotesFromContext()
+      // The notes will be updated through the context
     } catch (error) {
       console.error('Error refreshing notes:', error)
     } finally {
@@ -204,9 +217,14 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
     fetchTags()
   }, [])
 
+  // Update local notes when initialNotes change (from context)
+  useEffect(() => {
+    setNotes(initialNotes)
+  }, [initialNotes])
+
   if (isLoading) {
     return (
-      <div className="max-w-3xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
+      <div className="max-w-7xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
         <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
       </div>
     )
@@ -214,7 +232,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
 
   if (filteredNotes.length === 0) {
     return (
-      <div className="text-center py-8 mt-4">
+      <div className="max-w-7xl  w-full text-center py-8 mt-4">
         <p className="text-muted-foreground">No notes found for this tag.</p>
         <p className="mt-2">
           <a href="/notes/new" className="text-primary hover:underline">
@@ -226,11 +244,11 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   }
 
   return (
-    <div className="max-w-3xl w-full space-y-4 mt-10">
+    <div className="max-w-3xl  w-full space-y-4 mt-10">
       {filteredNotes.map((note) => (
         <div 
-          key={note.id} 
-          className={`border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900 relative ${
+          key={note.id}
+          className={`w-full border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900 relative ${
             deletingNoteId === note.id ? 'opacity-50 pointer-events-none' : ''
           }`}
         >
@@ -239,9 +257,19 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
               <ImSpinner8 className="animate-spin text-2xl text-gray-400" />
             </div>
           )}
-          <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-            <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
-            {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
+          <div className=" flex items-center text-xs text-muted-foreground mb-1">
+            <div className="flex items-center gap-2">
+              <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
+              {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
+            </div>
+            {/* Sync status indicator */}
+            {note.syncStatus && (
+              <SyncStatusIndicator 
+                status={note.syncStatus} 
+                isOnline={navigator.onLine}
+                className="ml-2"
+              />
+            )}
           </div>
           <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
           <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>

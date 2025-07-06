@@ -2,52 +2,61 @@
 
 import { useEffect, useState } from 'react'
 import NotesList from './NotesList'
-
-interface Note {
-  id: string
-  title: string
-  content: string
-  imageUrl: string | null
-  createdAt: string
-  updatedAt: string
-  isStarred: boolean
-  isShared: boolean
-  isTemp?: boolean
-  tags: {
-    tag: {
-      id: string
-      name: string
-    }
-  }[]
-}
+import { useOptimisticNotes } from '@/lib/use-optimistic-notes'
+import { NetworkStatusIndicator, OfflineNotesCounter } from './SyncStatusIndicator'
+import OfflineNotesManager from './OfflineNotesManager'
+import OfflineNotesNotification from './OfflineNotesNotification'
+import KeyboardShortcuts from './KeyboardShortcuts'
 
 interface NotesListWithStorageProps {
-  initialNotes: Note[]
   currentTag: string
 }
 
-export default function NotesListWithStorage({ initialNotes, currentTag }: NotesListWithStorageProps) {
-  const [notes, setNotes] = useState<Note[]>(initialNotes)
+export default function NotesListWithStorage({ currentTag }: NotesListWithStorageProps) {
+  const { notes, isOnline, refreshNotes } = useOptimisticNotes()
+  const [isOfflineManagerOpen, setIsOfflineManagerOpen] = useState(false)
+  
+  // Count offline notes
+  const offlineCount = notes.filter(note => note.isOffline).length
 
   useEffect(() => {
-    // Check for temporary note in local storage
-    const tempNote = localStorage.getItem('tempNote')
-    if (tempNote) {
-      const parsedNote = JSON.parse(tempNote)
-      setNotes(prevNotes => [parsedNote, ...prevNotes])
-    }
-
     // Listen for note creation events
     const handleNoteCreated = () => {
-      // Clear local storage when a note is successfully created
-      localStorage.removeItem('tempNote')
-      // Refresh the page to get the latest notes from the server
-      window.location.reload()
+      refreshNotes()
     }
 
     window.addEventListener('noteCreated', handleNoteCreated)
     return () => window.removeEventListener('noteCreated', handleNoteCreated)
-  }, [])
+  }, [refreshNotes])
 
-  return <NotesList initialNotes={notes} currentTag={currentTag} />
+  const handleManageOfflineNotes = () => {
+    setIsOfflineManagerOpen(true)
+  }
+
+  return (
+    <div className="max-w-3xl w-full space-y-4">
+      {/* Keyboard Shortcuts */}
+      <KeyboardShortcuts onOpenOfflineManager={handleManageOfflineNotes} />
+      
+      {/* Offline Notes Notification */}
+      <OfflineNotesNotification onManageClick={handleManageOfflineNotes} />
+      
+      {/* Network status and offline counter */}
+      <div className="flex items-center justify-between">
+        <NetworkStatusIndicator isOnline={isOnline} />
+        <OfflineNotesCounter 
+          count={offlineCount} 
+          onManageClick={offlineCount > 0 ? handleManageOfflineNotes : undefined}
+        />
+      </div>
+      
+      <NotesList initialNotes={notes} currentTag={currentTag} />
+      
+      {/* Offline Notes Manager Modal */}
+      <OfflineNotesManager 
+        isOpen={isOfflineManagerOpen}
+        onClose={() => setIsOfflineManagerOpen(false)}
+      />
+    </div>
+  )
 } 

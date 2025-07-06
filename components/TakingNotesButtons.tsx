@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { FaMicrophone } from "react-icons/fa6";
 import { ImSpinner8 } from "react-icons/im";
 import { toast } from "sonner";
-// Remove the direct Supabase import since we'll use the API route
+import { useOptimisticNotes } from "@/lib/use-optimistic-notes";
+import { OptimisticNote } from "@/lib/use-optimistic-notes";
 
 interface NoteData {
     title: string;
@@ -20,7 +21,7 @@ interface NoteData {
 }
 
 interface TakingNotesButtonsProps {
-    onNoteCreated?: () => void;
+    onNoteCreated?: (note: OptimisticNote) => void;
 }
 
 function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
@@ -32,6 +33,8 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
+    
+    const { createNote, isOnline } = useOptimisticNotes();
 
     const toggleInputField = () => {
         setIsInputVisible(!isInputVisible);
@@ -47,37 +50,28 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     const handleSaveNote = async () => {
         if (!noteData.title.trim() && !noteData.content.trim()) return;
         
-        // Save to local storage immediately
-        const tempNote = {
-            ...noteData,
-            id: `temp-${Date.now()}`,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isTemp: true
-        };
-        localStorage.setItem('tempNote', JSON.stringify(tempNote));
-        
         setIsSaving(true);
         const toastId = toast.loading('Saving note...');
         
         try {
-            const response = await fetch('/api/notes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(noteData),
+            const result = await createNote({
+                title: noteData.title,
+                content: noteData.content,
+                imageUrl: noteData.imageUrl,
+                isStarred: false,
+                isShared: false,
+                tags: []
             });
-
-            if (!response.ok) {
+            
+            if (result.success) {
+                toast.success('Note saved successfully', { id: toastId });
+                onNoteCreated?.(result.note);
+            } else if (result.offline) {
+                toast.success('Note saved offline - will sync when online', { id: toastId });
+                onNoteCreated?.(result.note);
+            } else {
                 throw new Error('Failed to save note');
             }
-
-            const savedNote = await response.json();
-            
-            // Clear local storage and update UI
-            localStorage.removeItem('tempNote');
-            toast.success('Note saved successfully', { id: toastId });
             
             // Reset form
             setNoteData({
@@ -87,23 +81,15 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             });
             setIsInputVisible(false);
             
-            // Dispatch custom event for note creation
-            window.dispatchEvent(new Event('noteCreated'));
-            
-            // Trigger the callback to refresh notes
-            onNoteCreated?.();
         } catch (error) {
             console.error('Error saving note:', error);
-            toast.error('Failed to save note. Your note is saved locally.', { id: toastId });
+            toast.error('Failed to save note', { id: toastId });
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleCancel = () => {
-        // Clear local storage when canceling
-        localStorage.removeItem('tempNote');
-        
         // Reset form
         setNoteData({
             title: '',
