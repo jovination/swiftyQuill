@@ -67,8 +67,8 @@ export default function OfflineNotesNotification({ onManageClick }: OfflineNotes
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full mx-4">
-      <div className="bg-orange-50 border border-orange-200 rounded-lg shadow-lg p-4">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full">
+      <div className="bg-orange-50 border border-orange-200 rounded-2xl shadow-lg p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
             <IoCloudOfflineOutline className="w-5 h-5 text-orange-500 mt-0.5" />

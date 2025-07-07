@@ -214,7 +214,7 @@ export default function OfflineNotesManager({ isOpen, onClose }: OfflineNotesMan
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-white rounded-3xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
@@ -337,7 +337,7 @@ export default function OfflineNotesManager({ isOpen, onClose }: OfflineNotesMan
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t bg-gray-50">
+        <div className="p-6 border-t rounded-b-3xl bg-gray-50">
           <div className="text-sm text-gray-600">
             <p className="mb-2">
               <strong>What are offline notes?</strong>

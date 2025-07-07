@@ -41,7 +41,6 @@ interface NotesListProps {
 }
 
 export default function NotesList({ initialNotes, currentTag }: NotesListProps) {
-  const [notes, setNotes] = useState<Note[]>(initialNotes)
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
@@ -51,13 +50,12 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Get the shared optimistic notes context
-  const { deleteNote: deleteNoteFromContext, updateNote: updateNoteFromContext, refreshNotes: refreshNotesFromContext } = useOptimisticNotes()
+  // Use notes from context
+  const { notes, deleteNote: deleteNoteFromContext, updateNote: updateNoteFromContext, refreshNotes: refreshNotesFromContext } = useOptimisticNotes()
 
   // Filter notes based on currentTag
   const filteredNotes = useMemo(() => {
     if (currentTag === 'All') return notes;
-    
     return notes.filter(note => {
       if (currentTag === 'Starred') return note.isStarred;
       if (currentTag === 'Shared') return note.isShared;
@@ -79,6 +77,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
     }
   }
 
+  // Only refresh from context after tag add/remove
   const addTagToNote = async (noteId: string, tagId: string) => {
     setUpdatingTags({ noteId, tagId })
     const toastId = toast.loading('Adding tag...')
@@ -91,26 +90,12 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
         body: JSON.stringify({ tagId }),
       })
       if (!response.ok) throw new Error('Failed to add tag')
-      
-      // Optimistically update the note in the local state
-      setNotes(notes.map(note => {
-        if (note.id === noteId) {
-          const tag = availableTags.find(t => t.id === tagId)
-          if (tag) {
-            return {
-              ...note,
-              tags: [...note.tags, { tag }]
-            }
-          }
-        }
-        return note
-      }))
       toast.success('Tag added successfully', { id: toastId })
+      await refreshNotesFromContext()
     } catch (error) {
       console.error('Error adding tag:', error)
       toast.error('Failed to add tag', { id: toastId })
-      // Revert the optimistic update on error
-      await refreshNotes()
+      await refreshNotesFromContext()
     } finally {
       setUpdatingTags(null)
     }
@@ -124,23 +109,12 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
         method: 'DELETE',
       })
       if (!response.ok) throw new Error('Failed to remove tag')
-      
-      // Optimistically update the note in the local state
-      setNotes(notes.map(note => {
-        if (note.id === noteId) {
-          return {
-            ...note,
-            tags: note.tags.filter(({ tag }) => tag.id !== tagId)
-          }
-        }
-        return note
-      }))
       toast.success('Tag removed successfully', { id: toastId })
+      await refreshNotesFromContext()
     } catch (error) {
       console.error('Error removing tag:', error)
       toast.error('Failed to remove tag', { id: toastId })
-      // Revert the optimistic update on error
-      await refreshNotes()
+      await refreshNotesFromContext()
     } finally {
       setUpdatingTags(null)
     }
@@ -210,11 +184,6 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   useEffect(() => {
     fetchTags()
   }, [])
-
-  // Update local notes when initialNotes change (from context)
-  useEffect(() => {
-    setNotes(initialNotes)
-  }, [initialNotes])
 
   if (isLoading) {
     return (
@@ -387,4 +356,4 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       )}
     </div>
   )
-} 
+}
