@@ -11,13 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Call Keep-Alive API
-      run: |
-        curl -X GET "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/api/keep-alive" \
-          -H "Content-Type: application/json" \
-          --max-time 30 \
-          --retry 3 \
-          --retry-delay 5
-      
-    - name: Log Success
-      run: echo "✅ Supabase keep-alive completed at $(date)" 
+      - name: Call Keep-Alive API
+        run: |
+          curl -X GET "https://swiftyquill.vercel.app/api/keep-alive" \
+            -H "Content-Type: application/json" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5
+      - name: Log Success
+        run: echo "✅ Supabase keep-alive completed at $(date)" 
