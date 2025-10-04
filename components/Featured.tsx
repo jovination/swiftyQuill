@@ -1,21 +1,22 @@
 import React from 'react'
-import { RiFolderOpenLine, RiCloudLine, RiEditCircleLine } from "react-icons/ri"
+import { RiQuillPenLine, RiCloudLine } from "react-icons/ri"
 import { PiTreeStructure } from "react-icons/pi";
 
-// Define the data structure for features
+
+
 const featuresData = [
   {
-    icon: RiEditCircleLine,
+    icon: RiQuillPenLine, 
     title: "Easy Note Taking",
     description: "Capture ideas instantly with a distraction-free interface, making writing and brainstorming seamless.",
   },
   {
-    icon: PiTreeStructure,
+    icon: PiTreeStructure, 
     title: "Organized Structure",
     description: "Keep your notes organized with customizable tags, and categories for easy access and management.",
   },
   {
-    icon: RiCloudLine,
+    icon: RiCloudLine, 
     title: "Seamless Syncing",
     description: "Sync your notes automatically across devices, ensuring your content stays updated and accessible anytime.",
   }

@@ -11,13 +11,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { IoAddOutline } from "react-icons/io5"
+import { Plus, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { toast } from "sonner"
 
- function TagDialog() {
+function TagDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
@@ -60,11 +65,20 @@ import { toast } from "sonner"
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-black/5 w-9 h-9 rounded-full hover:bg-black/10">
-          <IoAddOutline className="text-lg text-black" />
-        </Button>
-      </DialogTrigger>
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button className="bg-black/5 w-9 h-9 rounded-full hover:bg-black/10">
+                <Plus className="h-5 w-5 text-black" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={5}>
+            <p>Create tag</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DialogContent className="max-w-[400px] md:w-full w-[350px] rounded-3xl">
         <DialogHeader>
           <DialogTitle>Create tag</DialogTitle>
