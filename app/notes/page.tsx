@@ -38,13 +38,13 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar"
 import TagDialog from "@/components/TagDialog"
 import TagList from "@/components/TagList"
-import NotesListWithStorage from "@/components/NotesListWithStorage"
 import { ImSpinner8 } from "react-icons/im";
 import { Suspense } from 'react'
 
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { IoCopyOutline } from "react-icons/io5";
 import { IoAddSharp } from "react-icons/io5";
+import NotesList from "@/components/NotesList";
 
 const prisma = new PrismaClient()
 
@@ -127,7 +127,7 @@ export default async function NotesPage({
           <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
         </div>
       }>
-        <NotesListWithStorage 
+        <NotesList
           initialNotes={notes.map(note => ({
             ...note,
             updatedAt: note.updatedAt.toISOString(),
