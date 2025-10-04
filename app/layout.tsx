@@ -1,8 +1,8 @@
-import type React from "react"
 import type { Metadata } from "next"
 import { Instrument_Serif, Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SessionProvider } from "next-auth/react"
+import { Providers } from "@/app/providers"
 
 import "./globals.css"
 
@@ -31,20 +31,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${instrumentSerif.variable}`}>
+    <html lang="en" className={`${inter.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        <SessionProvider>
-      <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
+        <Providers>
+          <SessionProvider>
             {children}
-          </ThemeProvider>        
-        </SessionProvider>        
-          </body>
+          </SessionProvider>
+        </Providers>
+      </body>
     </html>
   )
 }
-
