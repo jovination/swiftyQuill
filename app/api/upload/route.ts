@@ -18,10 +18,6 @@ export async function POST(request: Request) {
                 { status: 400 }
             );
         }
-
-        // Here you would typically handle the file upload
-        // For example, uploading to a cloud storage service
-        // For now, we'll just return a success response
         return NextResponse.json({
             message: 'File upload successful',
             filename: file.name,
