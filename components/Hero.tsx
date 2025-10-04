@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
+import Link from "next/link"
 
 function Hero(){
     return(
@@ -11,9 +12,14 @@ function Hero(){
               <p className="text-base">
               Simplify Your Life with Our Best Productivity Tools for  Writing, Planning, and Organizing Your Tasks in a Minimalistic Way.
               </p>
+              <div>
+             <Link href="/signup" className="">
             <Button 
             className="w-[160px] h-[48px] rounded-[20px] text-base"
-            >Try For free</Button>
+            >Try For free
+            </Button>
+            </Link>
+            </div>
             </div>
             <div className=" flex justify-end w-[380px] lg:w-[560px] items-center">
             <Image
