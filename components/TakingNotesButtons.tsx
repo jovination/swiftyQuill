@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FaMicrophone } from "react-icons/fa6";
 import { ImSpinner8 } from "react-icons/im";
+import { RiMic2AiFill } from "react-icons/ri";
 import { toast } from "sonner";
 
 interface NoteData {
@@ -231,7 +232,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             <Button
                 className="h-[48px] rounded-[20px]"
             >
-               <FaMicrophone className="text-4xl text-green-400" />
+               <RiMic2AiFill className="text-4xl text-green-400" />
                 Transcribe
             </Button>
         </div>
