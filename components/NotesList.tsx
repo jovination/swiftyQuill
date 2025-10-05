@@ -22,6 +22,7 @@ import {
 import { ImSpinner8 } from "react-icons/im"
 import { RiDeleteBinLine } from "react-icons/ri";
 import { toast } from "sonner"
+import { Button } from './ui/button'
 
 interface Note {
   id: string
@@ -56,8 +57,12 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
   const [isLoadingTags, setIsLoadingTags] = useState(false)
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
   const [updatingTags, setUpdatingTags] = useState<{ noteId: string; tagId: string } | null>(null)
+  const [isInputVisible, setIsInputVisible] = useState(false);
 
-  // Filter notes based on currentTag
+  const toggleInputField = () => {
+    setIsInputVisible(!isInputVisible);
+};
+
   const filteredNotes = useMemo(() => {
     if (currentTag === 'All') return notes;
     
@@ -214,9 +219,9 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       <div className="text-center py-8 mt-4">
         <p className="text-muted-foreground">No notes found for this tag.</p>
         <p className="mt-2">
-          <a href="/notes/new" className="text-primary hover:underline">
+          <Button variant="ghost" onClick={() => toggleInputField()} className="text-primary hover:underline">
             Create a new note
-          </a>
+          </Button>
         </p>
       </div>
     )
