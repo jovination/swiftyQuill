@@ -24,6 +24,7 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.49.3",
+    "antd": "^6.5.1",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",

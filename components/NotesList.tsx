@@ -79,7 +79,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
             </div>
           )}
           <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-            <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
+            <span suppressHydrationWarning>{new Date(note.updatedAt).toLocaleDateString()}</span>
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
           <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
