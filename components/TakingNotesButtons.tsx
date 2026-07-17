@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { FluentEmoji } from '@lobehub/fluent-emoji';
 import EmojiPicker from 'emoji-picker-react';
 import { useSession } from "next-auth/react";
+import { useNotes } from './NotesContext';
 
 interface NoteData {
     title: string;
@@ -24,11 +25,8 @@ interface NoteData {
     imageUrl: string | null;
 }
 
-interface TakingNotesButtonsProps {
-    onNoteCreated?: () => void;
-}
-
-function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
+function TakingNotesButtons(){
+    const { addNoteOptimistically } = useNotes();
     const { data: session } = useSession();
     const [isInputVisible, setIsInputVisible] = useState(false);
     const [isTranscribeVisible, setIsTranscribeVisible] = useState(false);
@@ -45,6 +43,27 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     const [todoTasks, setTodoTasks] = useState<{id: string, text: string, done: boolean}[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedEmoji, setSelectedEmoji] = useState('😀');
+    const [todoImageUrl, setTodoImageUrl] = useState<string | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Close modals when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                if (isInputVisible) setIsInputVisible(false);
+                if (isTranscribeVisible) setIsTranscribeVisible(false);
+                if (isTodoVisible) setIsTodoVisible(false);
+            }
+        };
+
+        if (isInputVisible || isTranscribeVisible || isTodoVisible) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isInputVisible, isTranscribeVisible, isTodoVisible]);
 
     // Recording states
     const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'paused' | 'done'>('idle');
@@ -218,16 +237,12 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
 
     const handleSaveAudioNote = async () => {
         if (!mediaRecorderRef.current && !audioBlob) return;
-        
-        setIsSaving(true);
-        const toastId = toast.loading('Saving Voice Memo...');
 
         try {
             let finalBlob = audioBlob;
             if (recordingStatus === 'recording' || recordingStatus === 'paused') {
                 mediaRecorderRef.current?.stop();
                 finalBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                setRecordingStatus('idle');
                 if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
             }
             
@@ -236,51 +251,40 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             }
 
             if (!finalBlob) {
-                toast.error("No audio recorded.", { id: toastId });
-                setIsSaving(false);
+                toast.error("No audio recorded.");
                 return;
             }
 
+            // Convert to base64 for the audio URL
             const reader = new FileReader();
             reader.readAsDataURL(finalBlob);
-            reader.onloadend = async () => {
+            reader.onloadend = () => {
                 const base64data = reader.result as string;
 
-                const response = await fetch('/api/notes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: 'Voice Memo 1',
-                        content: 'Voice Memo audio attached.',
-                        audioUrl: base64data,
-                    }),
+                // Optimistically add note — closes UI instantly
+                addNoteOptimistically({
+                    title: 'Voice Memo 1',
+                    content: 'Voice Memo audio attached.',
+                    audioUrl: base64data,
+                    imageUrl: null,
                 });
-
-                if (response.ok) {
-                    toast.success('Voice Memo saved!', { id: toastId });
-                    setIsTranscribeVisible(false);
-                    setRecordingStatus('idle');
-                    setWaveformHeights([]);
-                    setRecordingDuration(0);
-                    recordingDurationRef.current = 0;
-                    setAudioBlob(null);
-                    setPlaybackProgress(0);
-                    setPlaybackStatus('idle');
-                    if (audioElementRef.current) {
-                        audioElementRef.current = null;
-                    }
-                    
-                    window.dispatchEvent(new Event('noteCreated'));
-                    onNoteCreated?.();
-                } else {
-                    toast.error('Failed to save memo.', { id: toastId });
-                }
-                setIsSaving(false);
             };
+
+            // Reset recorder UI immediately
+            setIsTranscribeVisible(false);
+            setRecordingStatus('idle');
+            setWaveformHeights([]);
+            setRecordingDuration(0);
+            recordingDurationRef.current = 0;
+            setAudioBlob(null);
+            setPlaybackProgress(0);
+            setPlaybackStatus('idle');
+            if (audioElementRef.current) {
+                audioElementRef.current = null;
+            }
         } catch (error) {
             console.error(error);
-            toast.error('Error saving voice memo.', { id: toastId });
-            setIsSaving(false);
+            toast.error('Error saving voice memo.');
         }
     };
 
@@ -315,60 +319,23 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
         }));
     };
 
-    const handleSaveNote = async () => {
+    const handleSaveNote = () => {
         if (!noteData.title.trim() && !noteData.content.trim()) return;
         
-        // Save to local storage immediately
-        const tempNote = {
-            ...noteData,
-            id: `temp-${Date.now()}`,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isTemp: true
-        };
-        localStorage.setItem('tempNote', JSON.stringify(tempNote));
+        // Optimistically add note — appears in list instantly
+        addNoteOptimistically({
+            title: noteData.title,
+            content: noteData.content,
+            imageUrl: noteData.imageUrl,
+        });
         
-        setIsSaving(true);
-        const toastId = toast.loading('Saving note...');
-        
-        try {
-            const response = await fetch('/api/notes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(noteData),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to save note');
-            }
-
-            const savedNote = await response.json();
-            
-            // Clear local storage and update UI
-            localStorage.removeItem('tempNote');
-            toast.success('Note saved successfully', { id: toastId });
-            
-            // Reset form
-            setNoteData({
-                title: '',
-                content: '',
-                imageUrl: null
-            });
-            setIsInputVisible(false);
-            
-            // Dispatch custom event for note creation
-            window.dispatchEvent(new Event('noteCreated'));
-            
-            // Trigger the callback to refresh notes
-            onNoteCreated?.();
-        } catch (error) {
-            console.error('Error saving note:', error);
-            toast.error('Failed to save note. Your note is saved locally.', { id: toastId });
-        } finally {
-            setIsSaving(false);
-        }
+        // Reset form and close immediately
+        setNoteData({
+            title: '',
+            content: '',
+            imageUrl: null
+        });
+        setIsInputVisible(false);
     };
 
     const handleCancel = () => {
@@ -384,7 +351,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
         setIsInputVisible(false);
     };
 
-    const handleSaveTodoList = async () => {
+    const handleSaveTodoList = () => {
         if (!todoListTitle.trim() || todoTasks.length === 0) {
             toast.error('Please add a title and at least one task');
             return;
@@ -392,38 +359,20 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
 
         const formattedContent = todoTasks.map(task => `- [${task.done ? 'x' : ' '}] ${task.text}`).join('\n');
         
-        const noteDataToSave = {
+        // Optimistically add todo list — appears in list instantly
+        addNoteOptimistically({
             title: todoListTitle,
             content: formattedContent,
-            imageUrl: null
-        };
-
-        setIsSaving(true);
-        const toastId = toast.loading('Saving Todo List...');
+            imageUrl: todoImageUrl,
+        });
         
-        try {
-            const response = await fetch('/api/notes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(noteDataToSave),
-            });
-
-            if (!response.ok) throw new Error('Failed to save todolist');
-
-            toast.success('Todo list saved successfully', { id: toastId });
-            
-            // Reset
-            setTodoListTitle('');
-            setTodoTasks([]);
-            setIsTodoVisible(false);
-            window.dispatchEvent(new Event('noteCreated'));
-            onNoteCreated?.();
-        } catch (error) {
-            console.error('Error saving todolist:', error);
-            toast.error('Failed to save todolist', { id: toastId });
-        } finally {
-            setIsSaving(false);
-        }
+        // Reset and close immediately
+        setTodoListTitle('');
+        setTodoTasks([]);
+        setTodoImageUrl(null);
+        setSelectedEmoji('😀');
+        setShowEmojiPicker(false);
+        setIsTodoVisible(false);
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -433,6 +382,14 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
             // For now, we'll just create a local URL for preview
             const imageUrl = URL.createObjectURL(file);
             handleInputChange('imageUrl', imageUrl);
+        }
+    };
+
+    const handleTodoImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setTodoImageUrl(imageUrl);
         }
     };
 
@@ -463,7 +420,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     });
 
     return(
-    <div className="w-full  flex flex-col items-center gap-4">
+    <div ref={containerRef} className="w-full  flex flex-col items-center gap-4">
         {/* Conditionally render the Todo modal based on isTodoVisible state */}
         {isTodoVisible && (
             <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-4">
@@ -543,9 +500,27 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                                         setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: newTodoTitle.trim(), done: false }]);
                                         setIsAddingTodo(false);
                                         setNewTodoTitle('');
+                                        setSelectedEmoji('😀');
                                     }
                                 }}
                             />
+                            
+                            {/* Image preview if uploaded */}
+                            {todoImageUrl && (
+                                <div className="relative inline-block">
+                                    <img 
+                                        src={todoImageUrl} 
+                                        alt="Task attachment" 
+                                        className="max-w-full h-auto max-h-24 rounded-lg object-cover border border-gray-200"
+                                    />
+                                    <button
+                                        onClick={() => setTodoImageUrl(null)}
+                                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 shadow-sm"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
                             
                             {/* Divider line */}
                             <div className="w-full h-px bg-gray-200"></div>
@@ -568,7 +543,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                                             type="file" 
                                             className="hidden" 
                                             accept="image/*"
-                                            onChange={handleImageUpload}
+                                            onChange={handleTodoImageUpload}
                                         />
                                     </label>
                                     <div className="relative">
@@ -590,6 +565,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                                                     <EmojiPicker 
                                                         onEmojiClick={(emojiData) => {
                                                             setSelectedEmoji(emojiData.emoji);
+                                                            setNewTodoTitle(prev => prev + emojiData.emoji);
                                                             setShowEmojiPicker(false);
                                                         }}
                                                     />
@@ -603,6 +579,8 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                                         onClick={() => {
                                             setIsAddingTodo(false);
                                             setNewTodoTitle('');
+                                            setSelectedEmoji('😀');
+                                            setTodoImageUrl(null);
                                         }}
                                         className="h-[40px] rounded-[12px] bg-[#0D0D0D]/5 hover:bg-[#0D0D0D]/10 text-black px-4"
                                     >
@@ -614,6 +592,7 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
                                                 setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: newTodoTitle.trim(), done: false }]);
                                                 setIsAddingTodo(false);
                                                 setNewTodoTitle('');
+                                                setSelectedEmoji('😀');
                                             }
                                         }}
                                         disabled={!newTodoTitle.trim()}

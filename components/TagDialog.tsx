@@ -11,8 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Plus, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Plus } from "lucide-react"
 import { useState } from "react"
 import {
   Tooltip,
@@ -20,47 +19,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { toast } from "sonner"
+import { useNotes } from './NotesContext'
 
 function TagDialog() {
-  const router = useRouter()
+  const { addTagOptimistically } = useNotes()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError("")
-    const toastId = toast.loading('Creating tag...')
-    
-    try {
-      const response = await fetch('/api/tags', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name }),
-      })
+    if (!name.trim()) return
 
-      if (!response.ok) {
-        const data = await response.text()
-        throw new Error(data || 'Failed to create tag')
-      }
-
-      setOpen(false)
-      setName("")
-      router.refresh()
-      toast.success('Tag created successfully', { id: toastId })
-    } catch (error) {
-      console.error('Error creating tag:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create tag'
-      setError(errorMessage)
-      toast.error(errorMessage, { id: toastId })
-    } finally {
-      setIsLoading(false)
-    }
+    // Optimistically add tag — appears instantly, dialog closes immediately
+    addTagOptimistically(name.trim())
+    setOpen(false)
+    setName("")
   }
 
   return (
@@ -83,7 +56,7 @@ function TagDialog() {
         <DialogHeader>
           <DialogTitle>Create tag</DialogTitle>
           <DialogDescription>
-            We'll use these keywords to auto-tag new notes and recommend past notes.
+            We&apos;ll use these keywords to auto-tag new notes and recommend past notes.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,35 +72,22 @@ function TagDialog() {
                 placeholder="Meeting notes, To-do, Agendas"
                 className="w-full h-[48px] rounded-[16px] bg-black/5 px-6 text-sm font-medium border-none focus:outline-none focus:border-none focus:ring-0"
                 required
-                disabled={isLoading}
               />
             </div>
-            {error && (
-              <p className="text-sm text-red-500">{error}</p>
-            )}
           </div>
           <DialogFooter className="flex justify-end gap-2">
             <Button 
               className="px-5 h-11 rounded-[16px] bg-black/5 hover:bg-black/10 text-black" 
               type="button"
               onClick={() => setOpen(false)}
-              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button 
               className="px-5 h-11 rounded-[16px]" 
               type="submit"
-              disabled={isLoading}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                'Create'
-              )}
+              Create
             </Button>
           </DialogFooter>
         </form>

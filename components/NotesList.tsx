@@ -1,18 +1,15 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
-import { FiSend, FiMic } from "react-icons/fi"
-import { Mic3, Play } from 'reicon-react';
+import { FiSend } from "react-icons/fi"
+import { Mic3 } from 'reicon-react';
 import { HiOutlineDotsHorizontal } from "react-icons/hi"
-import { IoCopyOutline, IoAddSharp } from "react-icons/io5"
+import { IoCopyOutline } from "react-icons/io5"
 import {
   Menubar,
-  MenubarCheckboxItem,
   MenubarContent,
   MenubarItem,
   MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
   MenubarSeparator,
   MenubarShortcut,
   MenubarSub,
@@ -22,48 +19,27 @@ import {
 } from "@/components/ui/menubar"
 import { ImSpinner8 } from "react-icons/im"
 import { RiDeleteBinLine } from "react-icons/ri";
-import { toast } from "sonner"
 import { Button } from './ui/button'
-
-interface Note {
-  id: string
-  title: string
-  content: string
-  audioUrl?: string | null
-  updatedAt: string
-  isStarred: boolean
-  isShared: boolean
-  tags: {
-    tag: {
-      id: string
-      name: string
-    }
-  }[]
-}
-
-interface Tag {
-  id: string
-  name: string
-}
+import { useNotes, type Note } from './NotesContext'
 
 interface NotesListProps {
-  initialNotes: Note[]
   currentTag: string
 }
 
-export default function NotesList({ initialNotes, currentTag }: NotesListProps) {
-  const [notes, setNotes] = useState<Note[]>(initialNotes)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [availableTags, setAvailableTags] = useState<Tag[]>([])
-  const [isLoadingTags, setIsLoadingTags] = useState(false)
-  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
-  const [updatingTags, setUpdatingTags] = useState<{ noteId: string; tagId: string } | null>(null)
+export default function NotesList({ currentTag }: NotesListProps) {
+  const {
+    notes,
+    tags: availableTags,
+    deleteNoteOptimistically,
+    addTagToNoteOptimistically,
+    removeTagFromNoteOptimistically,
+  } = useNotes()
+
   const [isInputVisible, setIsInputVisible] = useState(false);
 
   const toggleInputField = () => {
     setIsInputVisible(!isInputVisible);
-};
+  };
 
   const filteredNotes = useMemo(() => {
     if (currentTag === 'All') return notes;
@@ -74,147 +50,6 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       return note.tags.some(({ tag }) => tag.name === currentTag);
     });
   }, [notes, currentTag]);
-
-  const fetchTags = async () => {
-    setIsLoadingTags(true)
-    try {
-      const response = await fetch('/api/tags')
-      if (!response.ok) throw new Error('Failed to fetch tags')
-      const data = await response.json()
-      setAvailableTags(data)
-    } catch (error) {
-      console.error('Error fetching tags:', error)
-    } finally {
-      setIsLoadingTags(false)
-    }
-  }
-
-  const addTagToNote = async (noteId: string, tagId: string) => {
-    setUpdatingTags({ noteId, tagId })
-    const toastId = toast.loading('Adding tag...')
-    try {
-      const response = await fetch(`/api/notes/${noteId}/tags`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tagId }),
-      })
-      if (!response.ok) throw new Error('Failed to add tag')
-      
-      // Optimistically update the note in the local state
-      setNotes(notes.map(note => {
-        if (note.id === noteId) {
-          const tag = availableTags.find(t => t.id === tagId)
-          if (tag) {
-            return {
-              ...note,
-              tags: [...note.tags, { tag }]
-            }
-          }
-        }
-        return note
-      }))
-      toast.success('Tag added successfully', { id: toastId })
-    } catch (error) {
-      console.error('Error adding tag:', error)
-      toast.error('Failed to add tag', { id: toastId })
-      // Revert the optimistic update on error
-      await refreshNotes()
-    } finally {
-      setUpdatingTags(null)
-    }
-  }
-
-  const removeTagFromNote = async (noteId: string, tagId: string) => {
-    setUpdatingTags({ noteId, tagId })
-    const toastId = toast.loading('Removing tag...')
-    try {
-      const response = await fetch(`/api/notes/${noteId}/tags/${tagId}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) throw new Error('Failed to remove tag')
-      
-      // Optimistically update the note in the local state
-      setNotes(notes.map(note => {
-        if (note.id === noteId) {
-          return {
-            ...note,
-            tags: note.tags.filter(({ tag }) => tag.id !== tagId)
-          }
-        }
-        return note
-      }))
-      toast.success('Tag removed successfully', { id: toastId })
-    } catch (error) {
-      console.error('Error removing tag:', error)
-      toast.error('Failed to remove tag', { id: toastId })
-      // Revert the optimistic update on error
-      await refreshNotes()
-    } finally {
-      setUpdatingTags(null)
-    }
-  }
-
-  const deleteNote = async (noteId: string) => {
-    setDeletingNoteId(noteId)
-    const toastId = toast.loading('Deleting note...')
-    try {
-      const response = await fetch(`/api/notes/${noteId}`, {
-        method: 'DELETE',
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete note')
-      }
-
-      // Remove the note from the local state immediately
-      setNotes(notes.filter(note => note.id !== noteId))
-      toast.success('Note deleted successfully', { id: toastId })
-    } catch (error) {
-      console.error('Error deleting note:', error)
-      toast.error('Failed to delete note', { id: toastId })
-    } finally {
-      setDeletingNoteId(null)
-    }
-  }
-
-  const refreshNotes = async () => {
-    setIsRefreshing(true)
-    try {
-      const response = await fetch(`/api/notes${currentTag !== 'All' ? `?tag=${currentTag}` : ''}`)
-      if (!response.ok) throw new Error('Failed to fetch notes')
-      const data = await response.json()
-      setNotes(data)
-    } catch (error) {
-      console.error('Error refreshing notes:', error)
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
-
-  // Listen for note creation events
-  useEffect(() => {
-    const handleNoteCreated = () => {
-      refreshNotes()
-    }
-
-    window.addEventListener('noteCreated', handleNoteCreated)
-    return () => window.removeEventListener('noteCreated', handleNoteCreated)
-  }, [currentTag])
-
-  // Fetch tags when component mounts
-  useEffect(() => {
-    fetchTags()
-  }, [])
-
-  if (isLoading) {
-    return (
-      <div className="max-w-3xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
-        <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
-      </div>
-    )
-  }
 
   if (filteredNotes.length === 0) {
     return (
@@ -234,13 +69,13 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       {filteredNotes.map((note) => (
         <div 
           key={note.id} 
-          className={`group border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900 relative ${
-            deletingNoteId === note.id ? 'opacity-50 pointer-events-none' : ''
+          className={`group border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-300 relative ${
+            note.isPending ? 'opacity-70' : ''
           }`}
         >
-          {deletingNoteId === note.id && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-3xl">
-              <ImSpinner8 className="animate-spin text-2xl text-gray-400" />
+          {note.isPending && (
+            <div className="absolute top-3 right-3">
+              <ImSpinner8 className="animate-spin text-sm text-gray-400" />
             </div>
           )}
           <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
@@ -248,6 +83,13 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
           <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
+          
+          {note.imageUrl && (
+            <div className="mb-4">
+              <img src={note.imageUrl} alt="Note attachment" className="w-full max-h-48 object-cover rounded-2xl border border-gray-100" />
+            </div>
+          )}
+
           {note.content.trim().startsWith('- [') ? (
             <div className="flex flex-col gap-1.5 mb-4">
               {note.content.split('\n').slice(0, 3).map((line, idx) => {
@@ -319,41 +161,27 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
                     <MenubarSub>
                       <MenubarSubTrigger>Add Tag</MenubarSubTrigger>
                       <MenubarSubContent>
-                        {isLoadingTags ? (
-                          <div className="flex items-center justify-center p-2">
-                            <ImSpinner8 className="animate-spin text-sm" />
-                          </div>
-                        ) : (
-                          availableTags.map((tag) => {
+                        {availableTags
+                          .filter(tag => !tag.isDefault || tag.name === 'Starred')
+                          .filter(tag => tag.name !== 'All' && tag.name !== 'Shared')
+                          .map((tag) => {
                             const isTagAdded = note.tags.some(({ tag: noteTag }) => noteTag.id === tag.id)
-                            const isUpdating = updatingTags?.noteId === note.id && updatingTags?.tagId === tag.id
                             return (
                               <MenubarItem
                                 key={tag.id}
-                                onClick={() => {
+                                onSelect={() => {
                                   if (isTagAdded) {
-                                    removeTagFromNote(note.id, tag.id)
+                                    removeTagFromNoteOptimistically(note.id, tag.id)
                                   } else {
-                                    addTagToNote(note.id, tag.id)
+                                    addTagToNoteOptimistically(note.id, { id: tag.id, name: tag.name })
                                   }
                                 }}
-                                disabled={isUpdating}
                               >
-                                {isUpdating ? (
-                                  <div className="flex items-center gap-2">
-                                    <ImSpinner8 className="animate-spin text-sm" />
-                                    {isTagAdded ? 'Removing...' : 'Adding...'}
-                                  </div>
-                                ) : (
-                                  <>
-                                    {tag.name}
-                                    {isTagAdded && <span className="ml-2 text-primary">✓</span>}
-                                  </>
-                                )}
+                                {tag.name}
+                                {isTagAdded && <span className="ml-2 text-primary">✓</span>}
                               </MenubarItem>
                             )
-                          })
-                        )}
+                          })}
                       </MenubarSubContent>
                     </MenubarSub>
                     <MenubarSeparator />
@@ -364,9 +192,8 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
                     </MenubarItem>
                     <MenubarSeparator />
                     <MenubarItem
-                      onClick={(e) => {
-                        e.preventDefault();
-                        deleteNote(note.id);
+                      onSelect={() => {
+                        deleteNoteOptimistically(note.id);
                       }}
                     >
                       Delete Note <MenubarShortcut>
@@ -380,11 +207,6 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
           </div>
         </div>
       ))}
-      {isRefreshing && (
-        <div className="fixed bottom-20 right-4 bg-white rounded-full p-2 shadow-lg">
-          <ImSpinner8 className="animate-spin text-xl text-gray-400" />
-        </div>
-      )}
     </div>
   )
 } 
