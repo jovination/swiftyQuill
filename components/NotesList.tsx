@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
-import { FiSend } from "react-icons/fi"
+import { FiSend, FiMic } from "react-icons/fi"
+import { Mic3, Play } from 'reicon-react';
 import { HiOutlineDotsHorizontal } from "react-icons/hi"
 import { IoCopyOutline, IoAddSharp } from "react-icons/io5"
 import {
@@ -28,6 +29,7 @@ interface Note {
   id: string
   title: string
   content: string
+  audioUrl?: string | null
   updatedAt: string
   isStarred: boolean
   isShared: boolean
@@ -232,7 +234,7 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
       {filteredNotes.map((note) => (
         <div 
           key={note.id} 
-          className={`border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900 relative ${
+          className={`group border border-gray-100 rounded-3xl p-5 hover:bg-black/5 transition-all duration-900 relative ${
             deletingNoteId === note.id ? 'opacity-50 pointer-events-none' : ''
           }`}
         >
@@ -269,6 +271,22 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
           ) : (
             <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>
           )}
+
+          {note.audioUrl && (
+            <div className="mb-4 bg-black/5 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-700 shadow-sm">
+                  <Mic3 className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-800">Voice Memo attached</span>
+                  <span className="text-xs text-muted-foreground">Audio ready to play</span>
+                </div>
+              </div>
+              <audio controls src={note.audioUrl} className="w-full h-0 opacity-80 group-hover:h-10 group-hover:opacity-100 group-hover:mt-1 transition-all duration-300" />
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {note.tags.map(({ tag }) => (
               <span key={tag.id} className="text-xs px-3 py-1 bg-black/5 rounded-full lowercase text-gray-700">

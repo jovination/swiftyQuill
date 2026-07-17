@@ -1,15 +1,15 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { TbCapture } from "react-icons/tb";
 import { BiEditAlt } from "react-icons/bi";
 import { Home, Grid, Document, Calendar } from "reicon-react";
-import { LuListTodo } from "react-icons/lu";
+import { LuListTodo, LuExpand, LuShrink } from "react-icons/lu";
 import { MdDone } from "react-icons/md";
 import { RxCross2 } from "react-icons/rx";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FaMicrophone, FaPause, FaStop } from "react-icons/fa6";
+import { FaMicrophone, FaPause, FaStop, FaPlay } from "react-icons/fa6";
 import { BsThreeDots } from "react-icons/bs";
 import { ImSpinner8 } from "react-icons/im";
 import { RiMic2AiFill } from "react-icons/ri";
@@ -45,6 +45,244 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
     const [todoTasks, setTodoTasks] = useState<{id: string, text: string, done: boolean}[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedEmoji, setSelectedEmoji] = useState('😀');
+
+    // Recording states
+    const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'paused' | 'done'>('idle');
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const recordingDurationRef = useRef(0);
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+    const [isExpandedRecorder, setIsExpandedRecorder] = useState(false);
+    
+    // Preview playback states
+    const audioElementRef = useRef<HTMLAudioElement | null>(null);
+    const [playbackStatus, setPlaybackStatus] = useState<'idle' | 'playing' | 'paused'>('idle');
+    const [playbackProgress, setPlaybackProgress] = useState(0);
+
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<BlobPart[]>([]);
+    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [waveformHeights, setWaveformHeights] = useState<number[]>([]);
+
+    // Waveform Animation
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (recordingStatus === 'recording') {
+            interval = setInterval(() => {
+                setWaveformHeights(prev => {
+                    const newHeight = isExpandedRecorder ? Math.floor(Math.random() * 24) + 6 : Math.floor(Math.random() * 18) + 6;
+                    const next = [...prev, newHeight];
+                    const maxBars = isExpandedRecorder ? 60 : 30;
+                    if (next.length > maxBars) return next.slice(next.length - maxBars);
+                    return next;
+                });
+            }, 100);
+        } else if (recordingStatus === 'idle') {
+            setWaveformHeights([]);
+        }
+        return () => clearInterval(interval);
+    }, [recordingStatus, isExpandedRecorder]);
+
+    // Cleanup recording on unmount
+    useEffect(() => {
+        return () => {
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+        };
+    }, []);
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                setAudioBlob(blob);
+                
+                // Initialize preview player
+                const audioUrl = URL.createObjectURL(blob);
+                const audio = new Audio(audioUrl);
+                audio.ontimeupdate = () => {
+                    let dur = audio.duration;
+                    if (!dur || dur === Infinity) dur = recordingDurationRef.current;
+                    if (dur > 0) {
+                        setPlaybackProgress((audio.currentTime / dur) * 100);
+                    }
+                };
+                audio.onended = () => {
+                    setPlaybackStatus('idle');
+                    setPlaybackProgress(100);
+                };
+                audioElementRef.current = audio;
+
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start(200);
+            setRecordingStatus('recording');
+            setRecordingDuration(0);
+            recordingDurationRef.current = 0;
+
+            timerIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => {
+                    const next = prev + 1;
+                    recordingDurationRef.current = next;
+                    return next;
+                });
+            }, 1000);
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            toast.error('Microphone access denied or unavailable.');
+        }
+    };
+
+    const pauseRecording = () => {
+        if (mediaRecorderRef.current && recordingStatus === 'recording') {
+            mediaRecorderRef.current.pause();
+            setRecordingStatus('paused');
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        }
+    };
+
+    const resumeRecording = () => {
+        if (mediaRecorderRef.current && recordingStatus === 'paused') {
+            mediaRecorderRef.current.resume();
+            setRecordingStatus('recording');
+            timerIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => {
+                    const next = prev + 1;
+                    recordingDurationRef.current = next;
+                    return next;
+                });
+            }, 1000);
+        }
+    };
+
+    const handleDiscard = () => {
+        if (mediaRecorderRef.current && recordingStatus !== 'idle') {
+            mediaRecorderRef.current.stop();
+        }
+        setRecordingStatus('idle');
+        setRecordingDuration(0);
+        recordingDurationRef.current = 0;
+        setAudioBlob(null);
+        setPlaybackProgress(0);
+        setPlaybackStatus('idle');
+        setWaveformHeights([]);
+        if (audioElementRef.current) {
+            audioElementRef.current.pause();
+            audioElementRef.current = null;
+        }
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+
+    const finishRecording = () => {
+        if (mediaRecorderRef.current && recordingStatus !== 'idle') {
+            mediaRecorderRef.current.stop();
+            setRecordingStatus('done');
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        }
+    };
+
+    const togglePlayback = () => {
+        if (!audioElementRef.current) return;
+        if (playbackStatus === 'playing') {
+            audioElementRef.current.pause();
+            setPlaybackStatus('paused');
+        } else {
+            if (playbackProgress >= 100) {
+                audioElementRef.current.currentTime = 0;
+            }
+            audioElementRef.current.play();
+            setPlaybackStatus('playing');
+        }
+    };
+
+    const formatDuration = (seconds: number) => {
+        if (!isFinite(seconds) || isNaN(seconds)) return "00:00";
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${hrs > 0 ? hrs.toString().padStart(2, '0') + ':' : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleSaveAudioNote = async () => {
+        if (!mediaRecorderRef.current && !audioBlob) return;
+        
+        setIsSaving(true);
+        const toastId = toast.loading('Saving Voice Memo...');
+
+        try {
+            let finalBlob = audioBlob;
+            if (recordingStatus === 'recording' || recordingStatus === 'paused') {
+                mediaRecorderRef.current?.stop();
+                finalBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                setRecordingStatus('idle');
+                if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+            }
+            
+            if (audioElementRef.current) {
+                audioElementRef.current.pause();
+            }
+
+            if (!finalBlob) {
+                toast.error("No audio recorded.", { id: toastId });
+                setIsSaving(false);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.readAsDataURL(finalBlob);
+            reader.onloadend = async () => {
+                const base64data = reader.result as string;
+
+                const response = await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: 'Voice Memo 1',
+                        content: 'Voice Memo audio attached.',
+                        audioUrl: base64data,
+                    }),
+                });
+
+                if (response.ok) {
+                    toast.success('Voice Memo saved!', { id: toastId });
+                    setIsTranscribeVisible(false);
+                    setRecordingStatus('idle');
+                    setWaveformHeights([]);
+                    setRecordingDuration(0);
+                    recordingDurationRef.current = 0;
+                    setAudioBlob(null);
+                    setPlaybackProgress(0);
+                    setPlaybackStatus('idle');
+                    if (audioElementRef.current) {
+                        audioElementRef.current = null;
+                    }
+                    
+                    window.dispatchEvent(new Event('noteCreated'));
+                    onNoteCreated?.();
+                } else {
+                    toast.error('Failed to save memo.', { id: toastId });
+                }
+                setIsSaving(false);
+            };
+        } catch (error) {
+            console.error(error);
+            toast.error('Error saving voice memo.', { id: toastId });
+            setIsSaving(false);
+        }
+    };
 
     const toggleInputField = () => {
         setIsInputVisible(!isInputVisible);
@@ -431,50 +669,188 @@ function TakingNotesButtons({ onNoteCreated }: TakingNotesButtonsProps){
 
         {/* Conditionally render the transcribe modal based on isTranscribeVisible state */}
         {isTranscribeVisible && (
-            <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3">
-                {/* Header */}
-                <div className="flex justify-between items-center w-full">
-                    <span className="text-green-400 font-medium text-sm">Voice Memos</span>
-                    <BsThreeDots className="text-xl text-black" />
-                </div>
+            isExpandedRecorder ? (
+                <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3 mb-2 relative">
+                    {/* Header */}
+                    <div className="flex justify-between items-center w-full">
+                        <span className="text-green-400 font-medium text-sm">
+                            {recordingStatus === 'idle' ? 'Voice Memos' : recordingStatus === 'done' ? 'Ready to Transcribe' : 'Recording...'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsExpandedRecorder(false)} className="text-gray-400 hover:text-black transition">
+                                <LuShrink className="text-lg" />
+                            </button>
+                            <BsThreeDots className="text-xl text-black ml-2" />
+                        </div>
+                    </div>
 
-                {/* Waveform area */}
-                <div className="w-full h-24 bg-gray-50/50 rounded-full px-8 relative border border-gray-100 flex items-center">
-                    <div className="w-full h-full overflow-hidden relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center gap-[3px]">
-                            {/* Mock active bars */}
-                            {[10, 16, 12, 18, 14, 20, 15, 24, 18, 22, 16, 20, 14, 18, 12, 16, 10, 14, 12, 10].map((h, i) => (
-                                <div key={`active-${i}`} style={{ height: `${h}px` }} className="w-[2px] min-w-[2px] bg-green-400 rounded-full"></div>
-                            ))}
-                            
-                            {/* Playhead */}
-                            <div className="h-16 w-px min-w-[1px] bg-green-400 relative mx-1">
-                                <div className="w-2.5 h-2.5 bg-green-400 rounded-full absolute -top-1.5 -translate-x-[4px]"></div>
+                    {/* Waveform area */}
+                    <div className="w-full h-24 bg-gray-50/50 rounded-full px-8 relative border border-gray-100 flex items-center overflow-hidden">
+                        <div className="w-full h-full overflow-hidden relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center gap-[3px]">
+                                {/* Animated active bars */}
+                                {waveformHeights.map((h, i) => (
+                                    <div key={`active-${i}`} style={{ height: `${h}px` }} className={`w-[2px] min-w-[2px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-gray-300') : 'bg-green-400'}`}></div>
+                                ))}
+                                
+                                {/* Playhead */}
+                                {recordingStatus !== 'idle' && recordingStatus !== 'done' && (
+                                    <div className="h-16 w-px min-w-[1px] bg-green-400 relative mx-1">
+                                        <div className="w-2.5 h-2.5 bg-green-400 rounded-full absolute -top-1.5 -translate-x-[4px]"></div>
+                                    </div>
+                                )}
+
+                                {/* Mock inactive bars */}
+                                {[...Array(100)].map((_, i) => (
+                                    <div key={`inactive-${i}`} className="w-[2px] min-w-[2px] h-1.5 bg-gray-300 rounded-full"></div>
+                                ))}
                             </div>
+                        </div>
+                    </div>
 
-                            {/* Mock inactive bars */}
-                            {[...Array(100)].map((_, i) => (
-                                <div key={`inactive-${i}`} className="w-[2px] min-w-[2px] h-1.5 bg-gray-300 rounded-full"></div>
-                            ))}
+                    {/* Footer */}
+                    <div className="flex justify-between items-center w-full pt-2">
+                        <span className="text-[32px] font-medium tracking-tight">
+                            {recordingStatus === 'done' ? formatDuration(Math.floor((audioElementRef.current?.duration && isFinite(audioElementRef.current.duration) ? audioElementRef.current.duration : recordingDurationRef.current) * (playbackProgress / 100))) : formatDuration(recordingDuration)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            {recordingStatus === 'idle' ? (
+                                <Button onClick={startRecording} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-6 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <FaMicrophone className="text-[12px]" />
+                                    Start
+                                </Button>
+                            ) : recordingStatus === 'done' ? (
+                                <>
+                                    <Button onClick={handleDiscard} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <RxCross2 className="text-[14px]" />
+                                        Discard
+                                    </Button>
+                                    <Button onClick={togglePlayback} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        {playbackStatus === 'playing' ? <FaPause className="text-[12px]" /> : <FaPlay className="text-[12px] ml-0.5" />}
+                                    </Button>
+                                    <Button onClick={handleSaveAudioNote} disabled={isSaving} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-6 text-sm flex items-center gap-2 shadow-none font-medium disabled:opacity-50">
+                                        {isSaving ? <ImSpinner8 className="animate-spin text-sm mr-1" /> : <MdDone className="text-[14px] mr-1" />}
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    {recordingStatus === 'recording' ? (
+                                        <Button onClick={pauseRecording} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                            <FaPause className="text-[10px]" />
+                                            Pause
+                                        </Button>
+                                    ) : (
+                                        <Button onClick={resumeRecording} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                            <FaPlay className="text-[10px]" />
+                                            Resume
+                                        </Button>
+                                    )}
+                                    <Button onClick={finishRecording} className="h-[40px] rounded-full bg-[#FF3B30] hover:bg-[#FF3B30]/90 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <FaStop className="text-[10px]" />
+                                    </Button>
+                                    <Button onClick={finishRecording} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <MdDone className="text-[14px]" />
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
+            ) : (
+                <div className="bg-background flex items-center justify-between w-[360px] md:w-[440px] h-[64px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[32px] px-5 mb-2 relative">
+                    {/* Time & Dot */}
+                    <div className="flex items-center gap-2 min-w-[50px]">
+                        {recordingStatus === 'recording' && <div className="w-2 h-2 rounded-full bg-[#58A942] animate-pulse"></div>}
+                        {recordingStatus === 'paused' && <div className="w-2 h-2 rounded-full bg-[#58A942]"></div>}
+                        <span className={`text-[15px] font-medium tracking-tight ${recordingStatus !== 'idle' ? 'text-[#58A942]' : 'text-gray-500'}`}>
+                            {recordingStatus === 'idle' ? '0:00' : formatDuration(recordingDuration).replace(/^00:/, '')} 
+                        </span>
+                    </div>
 
-                {/* Footer */}
-                <div className="flex justify-between items-center w-full pt-2">
-                    <span className="text-[32px] font-medium tracking-tight">00:10:04</span>
+                    {/* Waveform / Dotted Line */}
+                    <div className="flex-1 flex items-center justify-center overflow-hidden h-full px-2 gap-1">
+                        {recordingStatus === 'idle' ? (
+                            <div className="w-full flex justify-between items-center opacity-30">
+                                 {[...Array(24)].map((_, i) => <div key={`idle-dot-${i}`} className="w-1 h-1 bg-gray-400 rounded-full"></div>)}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-[3px] w-full justify-start overflow-hidden">
+                                {/* Animated waveform bars filling from left to right */}
+                                {waveformHeights.map((h, i) => (
+                                    <div key={`wave-${i}`} style={{ height: `${h}px` }} className={`w-[2.5px] min-w-[2.5px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-gray-300') : 'bg-[#58A942]'}`}></div>
+                                ))}
+                                {/* Dotted line for remaining space */}
+                                <div className="flex-1 flex justify-between items-center pl-2 opacity-30">
+                                    {[...Array(24)].map((_, i) => <div key={`rec-dot-${i}`} className="w-1 h-1 bg-gray-400 rounded-full"></div>)}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Controls */}
                     <div className="flex items-center gap-2">
-                        <Button className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
-                            <FaPause className="text-[10px]" />
-                            Pause
-                        </Button>
-                        <Button className="h-[40px] rounded-full bg-[#FF3B30] hover:bg-[#FF3B30]/90 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
-                            <FaStop className="text-[10px]" />
-                            Stop
-                        </Button>
+                        {recordingStatus === 'idle' ? (
+                            <>
+                                <button onClick={() => setIsExpandedRecorder(true)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <LuExpand className="text-md" />
+                                </button>
+                                <button onClick={handleDiscard} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
+                                <button onClick={startRecording} className="w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition shadow-sm">
+                                    <FaPlay className="text-[14px] ml-0.5" />
+                                </button>
+                                <button onClick={() => setIsTranscribeVisible(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <RxCross2 className="text-xl" />
+                                </button>
+                            </>
+                        ) : recordingStatus === 'done' ? (
+                            <>
+                                <button onClick={() => setIsExpandedRecorder(true)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <LuExpand className="text-md" />
+                                </button>
+                                <button onClick={handleDiscard} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
+                                <button onClick={togglePlayback} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                                    {playbackStatus === 'playing' ? <FaPause className="text-[12px]" /> : <FaPlay className="text-[12px] ml-0.5" />}
+                                </button>
+                                <button onClick={handleSaveAudioNote} disabled={isSaving} className="w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition shadow-sm disabled:opacity-50">
+                                    {isSaving ? <ImSpinner8 className="animate-spin text-sm" /> : <MdDone className="text-[18px]" />}
+                                </button>
+                                <button onClick={() => setIsTranscribeVisible(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <RxCross2 className="text-xl" />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => setIsExpandedRecorder(true)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <LuExpand className="text-md" />
+                                </button>
+                                <button onClick={handleDiscard} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
+                                {recordingStatus === 'recording' ? (
+                                    <button onClick={pauseRecording} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                                        <FaPause className="text-[12px]" />
+                                    </button>
+                                ) : (
+                                    <button onClick={resumeRecording} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                                        <FaPlay className="text-[12px] ml-0.5" />
+                                    </button>
+                                )}
+                                <button onClick={finishRecording} className="w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition shadow-sm">
+                                    <MdDone className="text-[18px]" />
+                                </button>
+                                <button onClick={() => setIsTranscribeVisible(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition">
+                                    <RxCross2 className="text-xl" />
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
-            </div>
+            )
         )}
 
         {/* Conditionally render the input field based on isInputVisible state */}
