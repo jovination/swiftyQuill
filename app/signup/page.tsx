@@ -1,6 +1,12 @@
+import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 import SignupForm from "@/components/SignupForm"
 
-function Page(){
+async function Page(){
+    const session = await auth()
+    if (session?.user?.email) {
+        redirect("/notes")
+    }
     return(
         <div className="bg-[#FEFEFE]">
         <SignupForm />

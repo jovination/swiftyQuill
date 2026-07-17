@@ -12,15 +12,13 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Mail } from "lucide-react"
-import { FaApple, FaGithub } from "react-icons/fa"
 import AuthModal from "@/components/AuthModal";
 
 
 function SignupPortal() {
   const [isMobile, setIsMobile] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [mode, setMode] = useState<"signin" | "signup">("signup")
 
   useEffect(() => {
     const checkIsMobile = () => {
@@ -37,12 +35,23 @@ function SignupPortal() {
 
   const SignupContent = () => (
     <>
-      <AuthModal mode="signup" />
+      <AuthModal mode={mode} />
       <div className="mt-4 text-center">
-        <span className="text-sm">Already have an account? </span>
-        <Link className="text-sm underline text-grey-600" href="/login">
-          Log in
-        </Link>
+        {mode === "signup" ? (
+          <>
+            <span className="text-sm">Already have an account? </span>
+            <button className="text-sm underline text-grey-600" onClick={() => setMode("signin")}>
+              Log in
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="text-sm">Don't have an account? </span>
+            <button className="text-sm underline text-grey-600" onClick={() => setMode("signup")}>
+              Sign up
+            </button>
+          </>
+        )}
       </div>
     </>
   )

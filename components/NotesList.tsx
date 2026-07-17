@@ -246,7 +246,29 @@ export default function NotesList({ initialNotes, currentTag }: NotesListProps) 
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
           <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
-          <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>
+          {note.content.trim().startsWith('- [') ? (
+            <div className="flex flex-col gap-1.5 mb-4">
+              {note.content.split('\n').slice(0, 3).map((line, idx) => {
+                const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
+                const text = line.replace(/^- \[[ xX]\] /, '');
+                return (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-[#58A942] border-[#58A942]' : 'border-gray-300 bg-white'}`}>
+                      {isChecked && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </div>
+                    <span className={`text-sm truncate ${isChecked ? 'text-gray-400 line-through' : 'text-gray-600'}`}>
+                      {text}
+                    </span>
+                  </div>
+                );
+              })}
+              {note.content.split('\n').length > 3 && (
+                <span className="text-xs text-gray-400 mt-0.5">+{note.content.split('\n').length - 3} more items...</span>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>
+          )}
           <div className="flex flex-wrap gap-2">
             {note.tags.map(({ tag }) => (
               <span key={tag.id} className="text-xs px-3 py-1 bg-black/5 rounded-full lowercase text-gray-700">

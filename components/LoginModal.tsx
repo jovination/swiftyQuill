@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react"; 
+import { signIn } from "next-auth/react";
 
 function LoginModal() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false); 
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,26 +18,22 @@ function LoginModal() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        router.push("/notes");
+      if (result?.error) {
+        setError(result.error);
       } else {
-        setError(data.message || "Login failed");
-        setLoading(false);
+        window.location.href = "/notes";
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
-      setLoading(false);
       console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 

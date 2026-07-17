@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react"; 
+import { signIn } from "next-auth/react";
 
 function SignupModal() {
   const [email, setEmail] = useState("");
@@ -12,7 +12,6 @@ function SignupModal() {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false); 
-  const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,19 +28,16 @@ function SignupModal() {
       const data = await response.json();
 
       if (response.ok) {
-        // After successful registration, log the user in
-        const loginResponse = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
         });
 
-        if (loginResponse.ok) {
-          router.push("/notes");
-        } else {
+        if (result?.error) {
           setError("Registration successful but login failed. Please try logging in.");
+        } else {
+          window.location.href = "/notes";
         }
       } else {
         setError(data.message || "Registration failed");

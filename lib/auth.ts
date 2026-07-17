@@ -90,7 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             counter++;
           }
 
-          await prisma.user.create({
+          const newUser = await prisma.user.create({
             data: {
               email: user.email!,
               username: username,
@@ -98,10 +98,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               updatedAt: new Date(),
             },
           });
+          
+          user.id = newUser.id;
+          user.username = newUser.username;
+        } else {
+          user.id = existingUser.id;
+          user.username = existingUser.username;
         }
       }
       return true;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET,
 });
