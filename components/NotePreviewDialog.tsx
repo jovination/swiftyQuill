@@ -419,7 +419,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
                         lines[idx] = lines[idx].replace(/^- \[[ xX]\]/, isChecked ? '- [ ]' : '- [x]');
                         setContent(lines.join('\n'));
                       }}
-                      className={`w-6 h-6 mt-0.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isChecked ? 'bg-[#58A942] border-[#58A942]' : (color ? 'border-gray-500/60 hover:bg-black/10' : 'border-gray-300 dark:border-gray-500 hover:bg-black/5 dark:hover:bg-white/5')}`}
+                      className={`w-6 h-6 mt-0.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isChecked ? 'bg-[#00b505] border-[#00b505]' : (color ? 'border-gray-500/60 hover:bg-black/10' : 'border-gray-300 dark:border-gray-500 hover:bg-black/5 dark:hover:bg-white/5')}`}
                     >
                       {isChecked && <span className="text-white text-[12px] font-bold">✓</span>}
                     </button>
