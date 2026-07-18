@@ -526,7 +526,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
         </div>
 
         {/* Bottom Toolbar */}
-        <div className="mt-4 sm:mt-8 shrink-0 flex justify-between items-center bg-white dark:bg-[#242426] p-2 rounded-[28px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
+        <div className="relative mt-4 sm:mt-8 shrink-0 flex justify-between items-center bg-white dark:bg-[#242426] p-2 rounded-[28px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
           <div className="flex gap-2 items-center">
             <input type="file" accept="image/*" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
 
@@ -534,28 +534,9 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
               <Add className="w-6 h-6" />
             </button>
             
-            <div className="relative">
-              <button onClick={() => setShowPalette(!showPalette)} className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
-                <Sparkles className="w-5 h-5" />
-              </button>
-              
-              {/* Palette Popover */}
-              {showPalette && (
-                <div className="absolute bottom-[calc(100%+8px)] left-0 bg-white dark:bg-[#2C2C2E] p-2 rounded-2xl shadow-xl border border-black/5 dark:border-white/5 flex gap-2 z-10">
-                  <button onClick={() => { setColor(null); setShowPalette(false) }} className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0">
-                    <span className="block w-full h-[2px] bg-red-500 rotate-45"></span>
-                  </button>
-                  {["#FFCF7C", "#FFA57F", "#BD9DFF", "#00D9FE", "#E7F298"].map(c => (
-                    <button 
-                      key={c} 
-                      onClick={() => { setColor(c); setShowPalette(false) }}
-                      className={`w-8 h-8 rounded-full border border-black/10 transition-transform hover:scale-110 shrink-0 ${color === c ? 'ring-2 ring-offset-2 ring-black dark:ring-offset-[#2C2C2E] dark:ring-white' : ''}`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <button onClick={() => setShowPalette(!showPalette)} className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
+              <Sparkles className="w-5 h-5" />
+            </button>
             
             {/* Toggle group */}
             <div className="hidden sm:flex bg-[#F4F4F5] dark:bg-[#18181A] rounded-[22px] p-1.5 h-12 items-center ml-1">
@@ -586,6 +567,37 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
               <ArrowUp className="w-6 h-6" />
             </button>
           </div>
+          
+          {/* Palette Popover */}
+          {showPalette && (
+            <div className="absolute bottom-[calc(100%+4px)] left-1/2 -translate-x-1/2 bg-white dark:bg-[#2C2C2E] p-2 rounded-2xl shadow-xl border border-black/5 dark:border-white/5 flex gap-2 justify-start w-[calc(100%-1rem)] max-w-[450px] overflow-x-auto custom-scrollbar z-10">
+              <button 
+                onClick={() => { setColor(null); setShowPalette(false) }} 
+                className={`w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0 transition-transform hover:scale-110 ${color === null ? 'ring-2 ring-offset-2 ring-black dark:ring-offset-[#2C2C2E] dark:ring-white' : ''}`}
+              >
+                <span className="block w-full h-[2px] bg-red-500 rotate-45"></span>
+              </button>
+              {[
+                "#FFCF7C",
+                "#FFA57F",
+                "#BD9DFF",
+                "#00D9FE",
+                "#E7F298",
+                "#FF6B6B",
+                "#4ECDC4",
+                "#45B7D1",
+                "#F9C74F",
+                "#90BE6D",
+              ].map(c => (
+                <button 
+                  key={c} 
+                  onClick={() => { setColor(c); setShowPalette(false) }}
+                  className={`w-8 h-8 rounded-full border border-black/10 transition-transform hover:scale-110 shrink-0 ${color === c ? 'ring-2 ring-offset-2 ring-black dark:ring-offset-[#2C2C2E] dark:ring-white' : ''}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
       </DialogContent>
