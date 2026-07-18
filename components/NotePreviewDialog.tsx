@@ -108,15 +108,38 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
     }
   }, [])
 
-  if (!note) return null
+  const handleUpdateRef = useRef<() => void>(() => {})
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.isContentEditable
+      
+      if (e.key === 'Enter' && !isInput) {
+        e.preventDefault()
+        handleUpdateRef.current()
+      }
+    }
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
 
   const handleUpdate = () => {
+    if (!note) return
     if (recordingStatus !== 'idle') {
       handleDiscard()
     }
     updateNoteOptimistically(note.id, { title, content, audioUrl, imageUrls, color })
     onClose()
   }
+
+  handleUpdateRef.current = handleUpdate
+
+  if (!note) return null
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
