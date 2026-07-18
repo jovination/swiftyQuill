@@ -58,7 +58,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ noteId: 
     // Await the params object to get the noteId
     const { noteId } = await params
     const body = await req.json()
-    const { title, content, imageUrl, audioUrl, isStarred, isShared, color } = body
+    const { title, content, imageUrls, audioUrl, isStarred, isShared, color } = body
 
     // Get user by email
     const user = await prisma.user.findUnique({
@@ -89,7 +89,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ noteId: 
       data: {
         title,
         content,
-        imageUrl,
+        imageUrls,
         audioUrl,
         isStarred,
         isShared,

@@ -4,7 +4,7 @@ export type NoteCreateInput = {
   userId: string;
   title: string;
   content: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   isStarred?: boolean;
   isShared?: boolean;
   tags?: string[]; // Tag names
@@ -13,7 +13,7 @@ export type NoteCreateInput = {
 export type NoteUpdateInput = {
   title?: string;
   content?: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   isStarred?: boolean;
   isShared?: boolean;
   tags?: string[]; // Tag names to set (replaces existing tags)

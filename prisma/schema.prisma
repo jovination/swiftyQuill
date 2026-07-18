@@ -107,7 +107,7 @@ model Note {
   userId      String
   title       String
   content     String
-  imageUrl    String?
+  imageUrls   String[]     @default([])
   audioUrl    String?
   color       String?
   isStarred   Boolean      @default(false)

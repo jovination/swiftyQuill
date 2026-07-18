@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { title, content, imageUrl, audioUrl, isStarred, isShared, tags } = body;
+        const { title, content, imageUrls, audioUrl, isStarred, isShared, tags } = body;
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email }
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
             data: {
                 title,
                 content,
-                imageUrl,
+                imageUrls,
                 audioUrl,
                 isStarred,
                 isShared,

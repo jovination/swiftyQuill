@@ -134,9 +134,17 @@ export default function NotesList({ currentTag }: NotesListProps) {
           </div>
           <h2 className={`font-medium text-md mb-2 truncate ${note.color ? 'text-gray-900' : ''}`}>{note.title}</h2>
           
-          {note.imageUrl && (
-            <div className="mb-4">
-              <img src={note.imageUrl} alt="Note attachment" className={`${viewMode === 'list' ? 'w-32 h-32' : 'w-full max-h-48'} object-cover rounded-2xl`} />
+          {note.imageUrls && note.imageUrls.length > 0 && (
+            <div className="mb-4 flex gap-2 overflow-x-auto custom-scrollbar pb-2">
+              {note.imageUrls.map((url, idx) => (
+                <img 
+                  key={idx} 
+                  src={url} 
+                  alt={`Note attachment ${idx + 1}`} 
+                  className={`${viewMode === 'list' ? 'w-32 h-32' : 'w-full max-h-48 max-w-full'} object-cover rounded-2xl shrink-0`} 
+                  style={viewMode === 'grid' && note.imageUrls && note.imageUrls.length > 1 ? { width: '85%' } : undefined}
+                />
+              ))}
             </div>
           )}
 
@@ -163,7 +171,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
               )}
             </div>
           ) : (
-            <p className={`text-sm mb-4 line-clamp-3 ${note.color ? 'text-gray-800' : 'text-muted-foreground'}`}>{note.content}</p>
+            <p className={`text-sm mb-4 line-clamp-2 ${note.color ? 'text-gray-800' : 'text-muted-foreground'}`}>{note.content}</p>
           )}
 
           {note.audioUrl ? (

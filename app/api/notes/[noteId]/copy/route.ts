@@ -47,7 +47,7 @@ export async function POST(
                 userId: user.id,
                 title: `${originalNote.title} (Copy)`,
                 content: originalNote.content,
-                imageUrl: originalNote.imageUrl,
+                imageUrls: originalNote.imageUrls,
                 tags: {
                     create: originalNote.tags.map(({ tag }) => ({
                         tag: {

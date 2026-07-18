@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/prisma"
 import TakingNotesButtons from "@/components/TakingNotesButtons"
 import { IoSearchOutline } from "react-icons/io5";
 import { MdOutlineKeyboardCommandKey } from "react-icons/md";
@@ -11,8 +11,6 @@ import { ImSpinner8 } from "react-icons/im";
 import { Suspense } from 'react'
 import NotesList from "@/components/NotesList";
 import { NotesProvider } from "@/components/NotesContext";
-
-const prisma = new PrismaClient()
 
 export default async function NotesPage({
   searchParams,

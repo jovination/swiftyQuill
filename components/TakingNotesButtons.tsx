@@ -23,7 +23,7 @@ import { useNotes } from './NotesContext';
 interface NoteData {
     title: string;
     content: string;
-    imageUrl: string | null;
+    imageUrls: string[];
 }
 
 function TakingNotesButtons(){
@@ -37,7 +37,7 @@ function TakingNotesButtons(){
     const [noteData, setNoteData] = useState<NoteData>({
         title: '',
         content: '',
-        imageUrl: null
+        imageUrls: []
     });
     const [isSaving, setIsSaving] = useState(false);
     const [todoListTitle, setTodoListTitle] = useState('');
@@ -304,7 +304,7 @@ function TakingNotesButtons(){
                     title: newTitle,
                     content: 'Voice Memo audio attached.',
                     audioUrl: base64data,
-                    imageUrl: voiceMemoImageUrl,
+                    imageUrls: voiceMemoImageUrl ? [voiceMemoImageUrl] : [],
                 });
             };
 
@@ -351,7 +351,7 @@ function TakingNotesButtons(){
         }
     };
 
-    const handleInputChange = (field: keyof NoteData, value: string | null) => {
+    const handleInputChange = (field: keyof NoteData, value: any) => {
         setNoteData(prev => ({
             ...prev,
             [field]: value
@@ -365,14 +365,14 @@ function TakingNotesButtons(){
         addNoteOptimistically({
             title: noteData.title,
             content: noteData.content,
-            imageUrl: noteData.imageUrl,
+            imageUrls: noteData.imageUrls,
         });
         
         // Reset form and close immediately
         setNoteData({
             title: '',
             content: '',
-            imageUrl: null
+            imageUrls: []
         });
         setIsInputVisible(false);
     };
@@ -385,7 +385,7 @@ function TakingNotesButtons(){
         setNoteData({
             title: '',
             content: '',
-            imageUrl: null
+            imageUrls: []
         });
         setIsInputVisible(false);
     };
@@ -404,7 +404,7 @@ function TakingNotesButtons(){
         addNoteOptimistically({
             title: todoListTitle,
             content: formattedContent,
-            imageUrl: todoImageUrl,
+            imageUrls: todoImageUrl ? [todoImageUrl] : [],
         });
         
         setTodoListTitle('');
@@ -422,12 +422,10 @@ function TakingNotesButtons(){
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            // Here you would typically upload the file and get a URL
-            // For now, we'll just create a local URL for preview
-            const imageUrl = URL.createObjectURL(file);
-            handleInputChange('imageUrl', imageUrl);
+        const files = Array.from(event.target.files || []);
+        if (files.length > 0) {
+            const urls = files.map(file => URL.createObjectURL(file));
+            handleInputChange('imageUrls', [...noteData.imageUrls, ...urls]);
         }
     };
 
@@ -1031,19 +1029,23 @@ function TakingNotesButtons(){
                 ></textarea>
                 
                 {/* Image preview if uploaded */}
-                {noteData.imageUrl && (
-                    <div className="relative">
-                        <img 
-                            src={noteData.imageUrl} 
-                            alt="Note attachment" 
-                            className="max-w-full h-auto max-h-32 rounded-lg object-cover"
-                        />
-                        <button
-                            onClick={() => handleInputChange('imageUrl', null)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
-                        >
-                            ×
-                        </button>
+                {noteData.imageUrls.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                        {noteData.imageUrls.map((url, idx) => (
+                            <div key={idx} className="relative shrink-0">
+                                <img 
+                                    src={url} 
+                                    alt={`Attachment ${idx + 1}`} 
+                                    className="w-24 h-24 rounded-lg object-cover"
+                                />
+                                <button
+                                    onClick={() => handleInputChange('imageUrls', noteData.imageUrls.filter((_, i) => i !== idx))}
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 shadow-sm"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
                 
@@ -1064,6 +1066,7 @@ function TakingNotesButtons(){
                             type="file" 
                             className="hidden" 
                             accept="image/*"
+                            multiple
                             onChange={handleImageUpload}
                         />
                     </label>

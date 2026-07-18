@@ -22,7 +22,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imageUrls, setImageUrls] = useState<string[]>([])
   const [color, setColor] = useState<string | null>(null)
   const [showPalette, setShowPalette] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -49,7 +49,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
       setTitle(note.title)
       setContent(note.content)
       setAudioUrl(note.audioUrl || null)
-      setImageUrl(note.imageUrl || null)
+      setImageUrls(note.imageUrls || [])
       setColor(note.color || null)
       setRecordingStatus('idle')
       setIsExpandedRecorder(false)
@@ -114,19 +114,19 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
     if (recordingStatus !== 'idle') {
       handleDiscard()
     }
-    updateNoteOptimistically(note.id, { title, content, audioUrl, imageUrl, color })
+    updateNoteOptimistically(note.id, { title, content, audioUrl, imageUrls, color })
     onClose()
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
+    const files = Array.from(e.target.files || [])
+    files.forEach(file => {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImageUrl(reader.result as string)
+        setImageUrls(prev => [...prev, reader.result as string])
       }
       reader.readAsDataURL(file)
-    }
+    })
   }
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -284,6 +284,12 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
             <input 
               value={title} 
               onChange={e => setTitle(e.target.value)} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  if (title.trim() || content.trim()) handleUpdate()
+                }
+              }}
               className={`bg-transparent w-full outline-none border-none ${color ? 'placeholder-gray-600/60 text-gray-900' : 'placeholder-gray-400'}`}
               placeholder="Note Title"
             />
@@ -297,19 +303,23 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
         <div className="flex-1 overflow-y-auto px-4 -mx-4 custom-scrollbar min-h-[250px]">
           <div className="flex flex-col gap-5 pb-4 px-1">
             {/* Images/Media Row */}
-          {imageUrl && (
+          {imageUrls.length > 0 && (
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar relative w-max">
-              <img 
-                src={imageUrl} 
-                alt="Attachment" 
-                className="w-[100px] h-[100px] shrink-0 rounded-[22px] object-cover shadow-sm border border-black/5 dark:border-white/5" 
-              />
-              <button 
-                onClick={() => setImageUrl(null)} 
-                className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/40 text-white rounded-full hover:bg-black/60 transition"
-              >
-                <X className="w-3 h-3" />
-              </button>
+              {imageUrls.map((url, idx) => (
+                <div key={idx} className="relative shrink-0">
+                  <img 
+                    src={url} 
+                    alt={`Attachment ${idx + 1}`} 
+                    className="w-[100px] h-[100px] shrink-0 rounded-[22px] object-cover shadow-sm border border-black/5 dark:border-white/5" 
+                  />
+                  <button 
+                    onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== idx))} 
+                    className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/40 text-white rounded-full hover:bg-black/60 transition"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           
@@ -318,6 +328,12 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
             ref={textareaRef}
             value={content}
             onChange={handleTextareaChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (title.trim() || content.trim()) handleUpdate()
+              }
+            }}
             placeholder="Write something..."
             className={`w-full text-[20px] sm:text-[22px] leading-snug bg-transparent border-none outline-none resize-none font-medium ${color ? 'placeholder-gray-600/60 text-gray-900' : 'placeholder-gray-400 dark:placeholder-gray-600 text-gray-800 dark:text-gray-100'}`}
             rows={4}
@@ -512,7 +528,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
         {/* Bottom Toolbar */}
         <div className="mt-4 sm:mt-8 shrink-0 flex justify-between items-center bg-white dark:bg-[#242426] p-2 rounded-[28px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
           <div className="flex gap-2 items-center">
-            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+            <input type="file" accept="image/*" multiple className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
 
             <button onClick={() => fileInputRef.current?.click()} className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
               <Add className="w-6 h-6" />
