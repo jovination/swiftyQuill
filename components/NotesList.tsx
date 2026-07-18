@@ -93,7 +93,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
 
   return (
     <div className="w-full mt-10 max-w-4xl mx-auto">
-      <div className="flex justify-end mb-4">
+      <div className="hidden md:flex justify-end mb-4">
         <div className="flex bg-black/5 dark:bg-muted/50 rounded-lg p-1">
           <button 
             onClick={() => setViewMode('list')} 
@@ -110,7 +110,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
         </div>
       </div>
       
-      <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 items-start' : 'flex flex-col gap-4'}>
+      <div className={viewMode === 'grid' ? 'flex flex-col md:grid md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-3 sm:gap-4 items-start' : 'flex flex-col gap-4'}>
         {filteredNotes.map((note) => (
           <div 
             key={note.id} 
@@ -141,8 +141,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
                   key={idx} 
                   src={url} 
                   alt={`Note attachment ${idx + 1}`} 
-                  className={`${viewMode === 'list' ? 'w-32 h-32' : 'w-full max-h-48 max-w-full'} object-cover rounded-2xl shrink-0`} 
-                  style={viewMode === 'grid' && note.imageUrls && note.imageUrls.length > 1 ? { width: '85%' } : undefined}
+                  className={`object-cover rounded-2xl shrink-0 ${viewMode === 'list' ? 'w-32 h-32' : 'w-32 h-32 md:w-full md:max-h-48 md:max-w-full'} ${viewMode === 'grid' && note.imageUrls && note.imageUrls.length > 1 ? 'md:!w-[85%]' : ''}`}
                 />
               ))}
             </div>
@@ -188,7 +187,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
               <audio controls src={note.audioUrl} className="w-full h-0 opacity-80 group-hover:h-10 group-hover:opacity-100 group-hover:mt-1 transition-all duration-300" />
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="mb-4 p-3 flex flex-col gap-2 invisible pointer-events-none" aria-hidden="true">
+            <div className="hidden md:flex mb-4 p-3 flex-col gap-2 invisible pointer-events-none" aria-hidden="true">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center"></div>
                 <div className="flex flex-col">
