@@ -110,11 +110,11 @@ export default function NotesList({ currentTag }: NotesListProps) {
         </div>
       </div>
       
-      <div className={viewMode === 'grid' ? 'flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-4 items-start' : 'flex flex-col gap-4'}>
+      <div className={viewMode === 'grid' ? 'columns-1 sm:columns-2 md:columns-3 gap-4 w-full' : 'flex flex-col gap-4'}>
         {filteredNotes.map((note) => (
           <div 
             key={note.id} 
-            className={`group border rounded-[20px] sm:rounded-3xl p-3 sm:p-5 transition-all duration-300 relative flex flex-col overflow-hidden z-0 ${
+            className={`break-inside-avoid ${viewMode === 'grid' ? 'mb-4' : ''} group border rounded-[20px] sm:rounded-3xl p-3 sm:p-5 transition-all duration-300 relative flex flex-col overflow-hidden z-0 ${
               note.color 
                 ? 'border-transparent dark:border-transparent hover:brightness-95 dark:hover:brightness-110' 
                 : 'border-gray-100 dark:border-border hover:bg-black/5 dark:hover:bg-muted/50 hover:border-transparent dark:hover:border-transparent'
