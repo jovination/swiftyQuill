@@ -51,11 +51,14 @@ export default {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
-  			disabled: 'hsl(var(--disabled))',
-  			hint: 'hsl(var(--hint))',
-  			success: 'hsl(var(--success))',
-  			warning: 'hsl(var(--warning))',
-  			info: 'hsl(var(--info))'
+			disabled: 'hsl(var(--disabled))',
+			hint: 'hsl(var(--hint))',
+			success: 'hsl(var(--success))',
+			warning: 'hsl(var(--warning))',
+			info: 'hsl(var(--info))',
+			date: 'hsl(var(--date))',
+			modal: 'hsl(var(--modal))',
+			surface: 'hsl(var(--surface))'
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

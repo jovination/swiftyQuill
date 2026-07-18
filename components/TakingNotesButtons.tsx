@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from "@/components/ui/button"
 import { TbCapture } from "react-icons/tb";
 import { BiEditAlt } from "react-icons/bi";
@@ -43,8 +44,12 @@ function TakingNotesButtons(){
     const [todoTasks, setTodoTasks] = useState<{id: string, text: string, done: boolean}[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedEmoji, setSelectedEmoji] = useState('😀');
+    const [taskEmoji, setTaskEmoji] = useState<string | null>(null);
     const [todoImageUrl, setTodoImageUrl] = useState<string | null>(null);
+    const [isPreviewing, setIsPreviewing] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const emojiButtonRef = useRef<HTMLButtonElement>(null);
+    const [emojiPickerPos, setEmojiPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
     // Close modals when clicking outside
     useEffect(() => {
@@ -235,6 +240,29 @@ function TakingNotesButtons(){
         return `${hrs > 0 ? hrs.toString().padStart(2, '0') + ':' : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const extractLeadingEmoji = (text: string): { emoji: string | null; rest: string } => {
+        if (!text) return { emoji: null, rest: text };
+        const code = text.codePointAt(0)!;
+        if (
+            (code >= 0x1F600 && code <= 0x1F64F) ||
+            (code >= 0x1F300 && code <= 0x1F5FF) ||
+            (code >= 0x1F680 && code <= 0x1F6FF) ||
+            (code >= 0x1F1E0 && code <= 0x1F1FF) ||
+            (code >= 0x1F900 && code <= 0x1F9FF) ||
+            (code >= 0x2600 && code <= 0x26FF) ||
+            (code >= 0x2700 && code <= 0x27BF) ||
+            (code >= 0xFE00 && code <= 0xFE0F) ||
+            code === 0x200D
+        ) {
+            let end = text.length;
+            while (end > 0 && /[\uFE0F\u200D]/.test(text[end - 1])) end--;
+            const emoji = text.slice(0, end);
+            const rest = text.slice(end);
+            return { emoji: emoji.trimStart() || null, rest: rest.trimStart() };
+        }
+        return { emoji: null, rest: text };
+    };
+
     const handleSaveAudioNote = async () => {
         if (!mediaRecorderRef.current && !audioBlob) return;
 
@@ -363,23 +391,30 @@ function TakingNotesButtons(){
             toast.error('Please add a title and at least one task');
             return;
         }
+        setIsPreviewing(true);
+    };
 
+    const handleConfirmSaveTodoList = () => {
         const formattedContent = todoTasks.map(task => `- [${task.done ? 'x' : ' '}] ${task.text}`).join('\n');
         
-        // Optimistically add todo list — appears in list instantly
         addNoteOptimistically({
             title: todoListTitle,
             content: formattedContent,
             imageUrl: todoImageUrl,
         });
         
-        // Reset and close immediately
         setTodoListTitle('');
         setTodoTasks([]);
         setTodoImageUrl(null);
         setSelectedEmoji('😀');
+        setTaskEmoji(null);
         setShowEmojiPicker(false);
         setIsTodoVisible(false);
+        setIsPreviewing(false);
+    };
+
+    const handleBackFromPreview = () => {
+        setIsPreviewing(false);
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -402,7 +437,7 @@ function TakingNotesButtons(){
 
     const now = new Date();
     const formattedDate = now.toLocaleDateString('en-US', {
-        month: 'long',
+        month: 'short',
         day: 'numeric',
         year: 'numeric'
     });
@@ -430,7 +465,9 @@ function TakingNotesButtons(){
     <div ref={containerRef} className="w-full  flex flex-col items-center gap-4">
         {/* Conditionally render the Todo modal based on isTodoVisible state */}
         {isTodoVisible && (
-            <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-4">
+            <>
+            {!isPreviewing ? (
+            <div className="inputfield bg-modal flex flex-col justify-between w-[360px] md:w-[440px] h-auto shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-4">
                 {/* Header */}
                 <div className="flex justify-between items-start w-full">
                     <div className="flex flex-col flex-1 mr-4">
@@ -455,7 +492,7 @@ function TakingNotesButtons(){
                 </div>
 
                 {/* Calendar Strip */}
-                <div className="flex justify-between items-center w-full px-4 py-3 bg-muted/50 rounded-[20px]">
+                <div className="flex justify-between items-center w-full px-4 py-3 bg-surface/50 rounded-[20px]">
                     {calendarDays.map((item, idx) => (
                         <div key={idx} className="flex flex-col items-center gap-1.5">
                             <span className="text-xs font-semibold text-foreground">{item.day}</span>
@@ -473,25 +510,29 @@ function TakingNotesButtons(){
 
                 {/* List of Tasks */}
                 <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
-                    {todoTasks.map(task => (
-                        <div key={task.id} className="flex items-center justify-between bg-muted/50 rounded-[20px] p-4">
-                            <div className="flex items-center gap-4">
-                                <div 
-                                    className={`w-6 h-6 rounded border ${task.done ? 'bg-[#58A942] border-[#58A942]' : 'border-border bg-card'} flex items-center justify-center cursor-pointer`}
-                                    onClick={() => setTodoTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
-                                >
-                                    {task.done && <MdDone className="text-white text-sm" />}
+                    {todoTasks.map(task => {
+                        const { emoji, rest } = extractLeadingEmoji(task.text);
+                        return (
+                            <div key={task.id} className="flex items-center justify-between bg-surface/50 rounded-[20px] p-4">
+                                <div className="flex items-center gap-4">
+                                    <div 
+                                        className={`w-6 h-6 rounded border ${task.done ? 'bg-[#58A942] border-[#58A942]' : 'border-border bg-surface'} flex items-center justify-center cursor-pointer`}
+                                        onClick={() => setTodoTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
+                                    >
+                                        {task.done && <MdDone className="text-white text-sm" />}
+                                    </div>
+                                    <span className={`text-[14.5px] font-bold tracking-tight leading-none ${task.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                                        {emoji && <span className="mr-1.5"><FluentEmoji emoji={emoji} size={18} /></span>}
+                                        {rest || task.text}
+                                    </span>
                                 </div>
-                                <span className={`text-[14.5px] font-bold tracking-tight leading-none ${task.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                                    {task.text}
-                                </span>
+                                <RxCross2 
+                                    className="text-muted-foreground text-lg cursor-pointer hover:text-foreground" 
+                                    onClick={() => setTodoTasks(prev => prev.filter(t => t.id !== task.id))}
+                                />
                             </div>
-                            <BsThreeDots 
-                                className="text-muted-foreground text-lg cursor-pointer hover:text-foreground" 
-                                onClick={() => setTodoTasks(prev => prev.filter(t => t.id !== task.id))}
-                            />
-                        </div>
-                    ))}
+                        );
+                    })}
                     {/* Add new task input */}
                     {isAddingTodo && (
                         <div className="flex flex-col gap-3 bg-card border border-border shadow-sm rounded-[24px] p-4 mt-1 transition-all">
@@ -504,9 +545,11 @@ function TakingNotesButtons(){
                                 className="w-full bg-transparent outline-none text-sm font-medium px-1 text-foreground placeholder:text-muted-foreground"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && newTodoTitle.trim()) {
-                                        setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: newTodoTitle.trim(), done: false }]);
+                                        const taskText = taskEmoji ? `${taskEmoji} ${newTodoTitle.trim()}` : newTodoTitle.trim();
+                                        setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: taskText, done: false }]);
                                         setIsAddingTodo(false);
                                         setNewTodoTitle('');
+                                        setTaskEmoji(null);
                                         setSelectedEmoji('😀');
                                     }
                                 }}
@@ -553,39 +596,56 @@ function TakingNotesButtons(){
                                             onChange={handleTodoImageUpload}
                                         />
                                     </label>
-                                    <div className="relative">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                            className="flex h-[40px] cursor-pointer items-center justify-center rounded-[12px] bg-muted px-4 transition hover:bg-muted/80"
-                                        >
-                                            <FluentEmoji emoji={selectedEmoji} size={20} />
-                                        </button>
-                                        
-                                        {showEmojiPicker && (
-                                            <div className="absolute bottom-12 left-0 z-50">
-                                                <div 
-                                                    className="fixed inset-0 z-40" 
-                                                    onClick={() => setShowEmojiPicker(false)}
-                                                ></div>
-                                                <div className="relative z-50 shadow-xl rounded-lg overflow-hidden border border-border">
-                                                    <EmojiPicker 
-                                                        onEmojiClick={(emojiData) => {
-                                                            setSelectedEmoji(emojiData.emoji);
-                                                            setNewTodoTitle(prev => prev + emojiData.emoji);
-                                                            setShowEmojiPicker(false);
-                                                        }}
-                                                    />
-                                                </div>
+                                    <button 
+                                        ref={emojiButtonRef}
+                                        type="button" 
+                                        onClick={() => {
+                                            if (emojiButtonRef.current) {
+                                                const rect = emojiButtonRef.current.getBoundingClientRect();
+                                                const pickerHeight = 340;
+                                                const pickerWidth = 352;
+                                                let top = rect.top - pickerHeight - 8;
+                                                let left = rect.left;
+                                                if (top < 8) top = rect.bottom + 8;
+                                                if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
+                                                if (left < 8) left = 8;
+                                                setEmojiPickerPos({ top, left });
+                                            }
+                                            setShowEmojiPicker(!showEmojiPicker);
+                                        }}
+                                        className="flex h-[40px] cursor-pointer items-center justify-center rounded-[12px] bg-muted px-4 transition hover:bg-muted/80"
+                                    >
+                                        <FluentEmoji emoji={selectedEmoji} size={20} />
+                                    </button>
+
+                                    {showEmojiPicker && createPortal(
+                                        <div onMouseDown={(e) => e.stopPropagation()}>
+                                            <div 
+                                                className="fixed inset-0 z-[99]" 
+                                                onClick={() => setShowEmojiPicker(false)}
+                                            ></div>
+                                            <div 
+                                                className="fixed z-[100] shadow-xl rounded-lg overflow-hidden border border-border"
+                                                style={{ top: emojiPickerPos.top, left: emojiPickerPos.left }}
+                                            >
+                                                <EmojiPicker 
+                                                    onEmojiClick={(emojiData) => {
+                                                        setTaskEmoji(emojiData.emoji);
+                                                        setSelectedEmoji(emojiData.emoji);
+                                                        setShowEmojiPicker(false);
+                                                    }}
+                                                />
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>,
+                                        document.body
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Button
                                         onClick={() => {
                                             setIsAddingTodo(false);
                                             setNewTodoTitle('');
+                                            setTaskEmoji(null);
                                             setSelectedEmoji('😀');
                                             setTodoImageUrl(null);
                                         }}
@@ -596,9 +656,11 @@ function TakingNotesButtons(){
                                     <Button
                                         onClick={() => {
                                             if (newTodoTitle.trim()) {
-                                                setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: newTodoTitle.trim(), done: false }]);
+                                                const taskText = taskEmoji ? `${taskEmoji} ${newTodoTitle.trim()}` : newTodoTitle.trim();
+                                                setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: taskText, done: false }]);
                                                 setIsAddingTodo(false);
                                                 setNewTodoTitle('');
+                                                setTaskEmoji(null);
                                                 setSelectedEmoji('😀');
                                             }
                                         }}
@@ -627,8 +689,8 @@ function TakingNotesButtons(){
 
                 {/* Navbar within Todo */}
                 <div className="flex items-center gap-2 md:gap-4 mt-2">
-                    <div className="flex-1 bg-muted/50 rounded-[32px] p-1.5 md:p-2 flex items-center justify-between">
-                        <div className="bg-card rounded-[24px] px-3 py-2 md:px-4 md:py-3 flex items-center gap-1 md:gap-2 shadow-sm">
+                    <div className="flex-1 bg-surface/50 rounded-[32px] p-1.5 md:p-2 flex items-center justify-between">
+                        <div className="bg-modal rounded-[24px] px-3 py-2 md:px-4 md:py-3 flex items-center gap-1 md:gap-2 shadow-sm">
                             <Home className="text-[16px] md:text-[18px] text-foreground flex-shrink-0" />
                             <span className="text-xs md:text-sm font-bold text-foreground tracking-tight">Home</span>
                         </div>
@@ -651,32 +713,94 @@ function TakingNotesButtons(){
                     </button>
                 </div>
             </div>
+            ) : (
+            /* ── Preview Card ──────────────────────────────────────── */
+            <div className="inputfield bg-modal flex flex-col w-[360px] md:w-[440px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-4">
+                {/* Header */}
+                <div className="flex justify-between items-start w-full">
+                    <div className="flex flex-col flex-1 mr-4">
+                        <span className="text-muted-foreground text-[13px] font-medium">Preview</span>
+                        <span className="text-foreground text-[22px] font-bold mt-0.5 tracking-tight">{todoListTitle}</span>
+                    </div>
+                    {session?.user?.image ? (
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-border">
+                            <img src={session.user.image} alt="Profile" className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xl overflow-hidden border border-border">
+                            👩🏻‍⚕️
+                        </div>
+                    )}
+                </div>
+
+                {todoImageUrl && (
+                    <div className="w-full">
+                        <img src={todoImageUrl} alt="Attachment" className="w-full max-h-40 object-cover rounded-2xl border border-border" />
+                    </div>
+                )}
+
+                {/* Task list preview */}
+                <div className="flex flex-col gap-1.5">
+                    {todoTasks.map(task => {
+                        const { emoji, rest } = extractLeadingEmoji(task.text);
+                        return (
+                            <div key={task.id} className="flex items-center gap-2">
+                                <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 ${task.done ? 'bg-[#58A942] border-[#58A942]' : 'border-gray-300 dark:border-border bg-white dark:bg-surface'}`}>
+                                    {task.done && <span className="text-white text-[8px] font-bold">✓</span>}
+                                </div>
+                                <span className={`text-sm ${task.done ? 'text-gray-400 dark:text-muted-foreground line-through' : 'text-gray-600 dark:text-muted-foreground'}`}>
+                                    {emoji && <span className="mr-1"><FluentEmoji emoji={emoji} size={14} /></span>}
+                                    {rest || task.text}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 mt-1">
+                    <Button
+                        onClick={handleBackFromPreview}
+                        className="flex-1 h-11 rounded-[14px] bg-surface hover:bg-surface/80 text-foreground font-medium"
+                    >
+                        Back to Edit
+                    </Button>
+                    <Button
+                        onClick={handleConfirmSaveTodoList}
+                        className="flex-1 h-11 rounded-[14px] bg-[#58A942] hover:bg-[#58A942]/90 text-white font-medium"
+                    >
+                        <MdDone className="mr-1" /> Save
+                    </Button>
+                </div>
+            </div>
+            )}
+            </>
         )}
 
         {/* Conditionally render the transcribe modal based on isTranscribeVisible state */}
         {isTranscribeVisible && (
             isExpandedRecorder ? (
-                <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3 mb-2 relative">
+                <div className="inputfield bg-modal flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3 mb-2 relative">
                     {/* Header */}
                     <div className="flex justify-between items-center w-full">
                         <span className="text-green-400 font-medium text-sm">
                             {recordingStatus === 'idle' ? 'Voice Memos' : recordingStatus === 'done' ? 'Ready to Transcribe' : 'Recording...'}
                         </span>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setIsExpandedRecorder(false)} className="text-gray-400 hover:text-black transition">
+                            <button onClick={() => setIsExpandedRecorder(false)} className="text-muted-foreground hover:text-foreground transition">
                                 <LuShrink className="text-lg" />
                             </button>
-                            <BsThreeDots className="text-xl text-black ml-2" />
+                            <BsThreeDots className="text-xl text-foreground ml-2" />
                         </div>
                     </div>
 
                     {/* Waveform area */}
-                    <div className="w-full h-24 bg-gray-50/50 rounded-full px-8 relative border border-gray-100 flex items-center overflow-hidden">
+                    <div className="w-full h-24 bg-surface rounded-full px-8 relative border border-border flex items-center overflow-hidden">
                         <div className="w-full h-full overflow-hidden relative">
                             <div className="absolute inset-y-0 left-0 flex items-center gap-[3px]">
                                 {/* Animated active bars */}
                                 {waveformHeights.map((h, i) => (
-                                    <div key={`active-${i}`} style={{ height: `${h}px` }} className={`w-[2px] min-w-[2px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-gray-300') : 'bg-green-400'}`}></div>
+                                    <div key={`active-${i}`} style={{ height: `${h}px` }} className={`w-[2px] min-w-[2px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-muted-foreground/40') : 'bg-green-400'}`}></div>
                                 ))}
                                 
                                 {/* Playhead */}
@@ -688,7 +812,7 @@ function TakingNotesButtons(){
 
                                 {/* Mock inactive bars */}
                                 {[...Array(100)].map((_, i) => (
-                                    <div key={`inactive-${i}`} className="w-[2px] min-w-[2px] h-1.5 bg-gray-300 rounded-full"></div>
+                                    <div key={`inactive-${i}`} className="w-[2px] min-w-[2px] h-1.5 bg-muted-foreground/30 rounded-full"></div>
                                 ))}
                             </div>
                         </div>
@@ -707,11 +831,11 @@ function TakingNotesButtons(){
                                 </Button>
                             ) : recordingStatus === 'done' ? (
                                 <>
-                                    <Button onClick={handleDiscard} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <Button onClick={handleDiscard} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-4 text-sm flex items-center gap-2 shadow-none font-medium">
                                         <RxCross2 className="text-[14px]" />
                                         Discard
                                     </Button>
-                                    <Button onClick={togglePlayback} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <Button onClick={togglePlayback} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-4 text-sm flex items-center gap-2 shadow-none font-medium">
                                         {playbackStatus === 'playing' ? <FaPause className="text-[12px]" /> : <FaPlay className="text-[12px] ml-0.5" />}
                                     </Button>
                                     <Button onClick={handleSaveAudioNote} disabled={isSaving} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-6 text-sm flex items-center gap-2 shadow-none font-medium disabled:opacity-50">
@@ -722,12 +846,12 @@ function TakingNotesButtons(){
                             ) : (
                                 <>
                                     {recordingStatus === 'recording' ? (
-                                        <Button onClick={pauseRecording} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <Button onClick={pauseRecording} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-4 text-sm flex items-center gap-2 shadow-none font-medium">
                                             <FaPause className="text-[10px]" />
                                             Pause
                                         </Button>
                                     ) : (
-                                        <Button onClick={resumeRecording} className="h-[40px] rounded-full bg-black/5 hover:bg-black/10 text-black px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <Button onClick={resumeRecording} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-4 text-sm flex items-center gap-2 shadow-none font-medium">
                                             <FaPlay className="text-[10px]" />
                                             Resume
                                         </Button>
@@ -744,7 +868,7 @@ function TakingNotesButtons(){
                     </div>
                 </div>
             ) : (
-                <div className="bg-background flex items-center justify-between w-[360px] md:w-[440px] h-[64px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[32px] px-5 mb-2 relative">
+                <div className="bg-modal flex items-center justify-between w-[360px] md:w-[440px] h-[64px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[32px] px-5 mb-2 relative">
                     {/* Time & Dot */}
                     <div className="flex items-center gap-2 min-w-[50px]">
                         {recordingStatus === 'recording' && <div className="w-2 h-2 rounded-full bg-[#58A942] animate-pulse"></div>}
@@ -758,13 +882,13 @@ function TakingNotesButtons(){
                     <div className="flex-1 flex items-center justify-center overflow-hidden h-full px-2 gap-1">
                         {recordingStatus === 'idle' ? (
                             <div className="w-full flex justify-between items-center opacity-30">
-                                 {[...Array(24)].map((_, i) => <div key={`idle-dot-${i}`} className="w-1 h-1 bg-gray-400 rounded-full"></div>)}
+                                 {[...Array(24)].map((_, i) => <div key={`idle-dot-${i}`} className="w-1 h-1 bg-muted-foreground rounded-full"></div>)}
                             </div>
                         ) : (
                             <div className="flex items-center gap-[3px] w-full justify-start overflow-hidden">
                                 {/* Animated waveform bars filling from left to right */}
                                 {waveformHeights.map((h, i) => (
-                                    <div key={`wave-${i}`} style={{ height: `${h}px` }} className={`w-[2.5px] min-w-[2.5px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-gray-300') : 'bg-[#58A942]'}`}></div>
+                                    <div key={`wave-${i}`} style={{ height: `${h}px` }} className={`w-[2.5px] min-w-[2.5px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-surface') : 'bg-[#58A942]'}`}></div>
                                 ))}
                                 {/* Dotted line for remaining space */}
                                 <div className="flex-1 flex justify-between items-center pl-2 opacity-30">
@@ -841,7 +965,7 @@ function TakingNotesButtons(){
 
         {/* Conditionally render the input field based on isInputVisible state */}
         {isInputVisible && (
-            <div className="inputfield bg-background flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3">
+            <div className="inputfield bg-modal flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3">
                 {/* Title Input */}
                 <input
                     type="text"
@@ -881,7 +1005,7 @@ function TakingNotesButtons(){
                 
                 {/* Bottom controls */}
                 <div className="flex items-center justify-between pt-2">
-                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-muted px-4 text-foreground transition hover:bg-muted/80">
+                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-surface px-4 text-foreground transition hover:bg-surface/80">
                         <svg className="h-5 w-5" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
                             <title />
                             <g data-name="Layer 2" id="Layer_2">
@@ -902,7 +1026,7 @@ function TakingNotesButtons(){
                     <div className="flex items-center gap-2">
                         <Button
                             onClick={handleCancel}
-                            className="h-[40px] rounded-[12px] bg-muted hover:bg-muted/80 text-foreground"
+                            className="h-[40px] rounded-[12px] bg-surface hover:bg-surface/80 text-foreground"
                         >
                             <RxCross2 />
                         </Button>
@@ -931,7 +1055,7 @@ function TakingNotesButtons(){
         <div className="bg-background max-w-[360px] w-full h-[64px] rounded-3xl border border-border shadow-md p-2 flex items-center justify-between">
             <Button
                 onClick={toggleTodo}
-                className="h-[48px] rounded-[20px] bg-muted text-foreground hover:bg-muted/80"
+                className="h-[48px] rounded-[20px] bg-surface text-foreground hover:bg-surface/80"
             >
                 <LuListTodo />
                 Todos
@@ -939,7 +1063,7 @@ function TakingNotesButtons(){
 
             <Button
                 onClick={toggleInputField}
-                className="h-[48px] rounded-[20px] bg-muted text-foreground hover:bg-muted/80"
+                className="h-[48px] rounded-[20px] bg-surface text-foreground hover:bg-surface/80"
             >
                 <BiEditAlt />
                 Write

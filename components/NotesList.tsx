@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { FiSend } from "react-icons/fi"
 import { Mic3 } from 'reicon-react';
+import { FluentEmoji } from '@lobehub/fluent-emoji';
 import { HiOutlineDotsHorizontal } from "react-icons/hi"
 import { IoCopyOutline } from "react-icons/io5"
 import {
@@ -39,6 +40,29 @@ export default function NotesList({ currentTag }: NotesListProps) {
 
   const toggleInputField = () => {
     setIsInputVisible(!isInputVisible);
+  };
+
+  const extractLeadingEmoji = (text: string): { emoji: string | null; rest: string } => {
+    if (!text) return { emoji: null, rest: text };
+    const code = text.codePointAt(0)!;
+    if (
+      (code >= 0x1F600 && code <= 0x1F64F) ||
+      (code >= 0x1F300 && code <= 0x1F5FF) ||
+      (code >= 0x1F680 && code <= 0x1F6FF) ||
+      (code >= 0x1F1E0 && code <= 0x1F1FF) ||
+      (code >= 0x1F900 && code <= 0x1F9FF) ||
+      (code >= 0x2600 && code <= 0x26FF) ||
+      (code >= 0x2700 && code <= 0x27BF) ||
+      (code >= 0xFE00 && code <= 0xFE0F) ||
+      code === 0x200D
+    ) {
+      let end = text.length;
+      while (end > 0 && /[\uFE0F\u200D]/.test(text[end - 1])) end--;
+      const emoji = text.slice(0, end);
+      const rest = text.slice(end);
+      return { emoji: emoji.trimStart() || null, rest: rest.trimStart() };
+    }
+    return { emoji: null, rest: text };
   };
 
   const filteredNotes = useMemo(() => {
@@ -79,7 +103,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
             </div>
           )}
           <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-            <span suppressHydrationWarning>{new Date(note.updatedAt).toLocaleDateString()}</span>
+            <span suppressHydrationWarning className="text-date">{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
           <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
@@ -94,14 +118,16 @@ export default function NotesList({ currentTag }: NotesListProps) {
             <div className="flex flex-col gap-1.5 mb-4">
               {note.content.split('\n').slice(0, 3).map((line, idx) => {
                 const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
-                const text = line.replace(/^- \[[ xX]\] /, '');
+                const rawText = line.replace(/^- \[[ xX]\] /, '');
+                const { emoji, rest } = extractLeadingEmoji(rawText);
                 return (
                   <div key={idx} className="flex items-center gap-2">
                     <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-[#58A942] border-[#58A942]' : 'border-gray-300 dark:border-border bg-white dark:bg-card'}`}>
                       {isChecked && <span className="text-white text-[8px] font-bold">✓</span>}
                     </div>
                     <span className={`text-sm truncate ${isChecked ? 'text-gray-400 dark:text-muted-foreground line-through' : 'text-gray-600 dark:text-muted-foreground'}`}>
-                      {text}
+                      {emoji && <span className="mr-1"><FluentEmoji emoji={emoji} size={14} /></span>}
+                      {rest || rawText}
                     </span>
                   </div>
                 );

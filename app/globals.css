@@ -52,11 +52,15 @@ body {
     --interactive-hover: rgba(0, 0, 0, 0.04);
     --interactive-selected: rgba(0, 0, 0, 0.08);
     --interactive-focus: rgba(0, 0, 0, 0.12);
+
+    --date: 0 0% 55.3%;                     /* #8D8D8D */
+    --modal: 0 0% 100%;                    /* #ffffff (light fallback) */
+    --surface: 0 0% 96.1%;                 /* #f5f5f5 (light fallback) */
   }
 
   .dark {
     /* Midnight Charcoal */
-    --background: 0 0% 7%;              /* #121212 */
+    --background: 180 2% 11%;              /* #1B1C1C */
     --foreground: 0 0% 100%;             /* #ffffff */
 
     --card: 0 0% 12%;                    /* #1e1e1e paper */
@@ -80,7 +84,7 @@ body {
     --destructive: 4 90% 58%;            /* #f44336 error */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;                  /* #333333 */
+    --border: 0 0% 28%;                  /* #474747 */
     --input: 0 0% 27%;                   /* #444444 */
     --ring: 207 90% 77%;                 /* #90caf9, matches focus color */
 
@@ -101,6 +105,10 @@ body {
     --interactive-hover: rgba(255, 255, 255, 0.08);
     --interactive-selected: rgba(255, 255, 255, 0.16);
     --interactive-focus: rgba(144, 202, 249, 0.24);
+
+    --date: 0 0% 55.3%;                     /* #8D8D8D */
+    --modal: 0 0% 15.7%;                   /* #282829 */
+    --surface: 0 0% 20.8%;                 /* #343435 */
   }
 }
 
