@@ -90,7 +90,7 @@ export default async function NotesPage({
       <Toaster position="top-right" />
       <Navbar />
       <NotesProvider initialNotes={serializedNotes} initialTags={serializedTags}>
-        <div className="md:hidden max-w-[650px] w-full h-10 bg-muted rounded-xl px-3 flex items-center justify-between mt-6">
+        <div className="md:hidden max-w-4xl w-full h-10 bg-muted rounded-xl px-3 flex items-center justify-between mt-6">
           <div className="flex items-center gap-1">
             <IoSearchOutline className='text-2xl text-muted-foreground' />
             <input className="bg-transparent focus:outline-none focus:ring-0 focus:border-none border-none placeholder:text-md" placeholder="Search" />
@@ -103,14 +103,14 @@ export default async function NotesPage({
         <TagList currentTag={currentTag} />
         
         <Suspense fallback={
-          <div className="max-w-3xl w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
+          <div className="max-w-4xl md:-ml-28 w-full space-y-4 mt-10 flex justify-center items-center min-h-[200px]">
             <ImSpinner8 className="animate-spin text-4xl text-gray-400" />
           </div>
         }>
           <NotesList currentTag={currentTag} />
         </Suspense>
         
-        <div className="w-full flex justify-center fixed bottom-6 left-1/2 transform -translate-x-1/2">
+        <div className="max-w-4xl w-full flex justify-center fixed bottom-6 left-1/2 transform -translate-x-1/2">
           <TakingNotesButtons />
         </div>
       </NotesProvider>

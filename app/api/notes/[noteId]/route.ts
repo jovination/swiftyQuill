@@ -58,7 +58,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ noteId: 
     // Await the params object to get the noteId
     const { noteId } = await params
     const body = await req.json()
-    const { title, content, imageUrl, isStarred, isShared } = body
+    const { title, content, imageUrl, audioUrl, isStarred, isShared } = body
 
     // Get user by email
     const user = await prisma.user.findUnique({
@@ -69,16 +69,28 @@ export async function PUT(req: Request, { params }: { params: Promise<{ noteId: 
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // Verify the user owns the note
+    const existingNote = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId: user.id,
+      },
+    })
+
+    if (!existingNote) {
+      return NextResponse.json({ error: "Note not found or unauthorized" }, { status: 404 })
+    }
+
     // Update the note
     const note = await prisma.note.update({
       where: {
         id: noteId,
-        userId: user.id, // Ensure user can only update their own notes
       },
       data: {
         title,
         content,
         imageUrl,
+        audioUrl,
         isStarred,
         isShared,
         updatedAt: new Date(),
@@ -119,11 +131,22 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ noteI
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // Verify the user owns the note
+    const existingNote = await prisma.note.findFirst({
+      where: {
+        id: noteId,
+        userId: user.id,
+      },
+    })
+
+    if (!existingNote) {
+      return NextResponse.json({ error: "Note not found or unauthorized" }, { status: 404 })
+    }
+
     // Delete the note
     await prisma.note.delete({
       where: {
         id: noteId,
-        userId: user.id, // Ensure user can only delete their own notes
       },
     })
 

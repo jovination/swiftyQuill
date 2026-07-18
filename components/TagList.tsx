@@ -38,7 +38,7 @@ export default function TagList({ currentTag }: TagListProps) {
 
   return (
     <>
-      <div className="max-w-[650px] w-full md:-ml-28 mt-4 flex items-center gap-3">
+      <div className="max-w-4xl w-full mx-auto mt-4 flex items-center  gap-3">
         {tags.map((tag) => (
           <Link
             key={tag.id}

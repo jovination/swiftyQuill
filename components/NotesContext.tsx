@@ -42,6 +42,7 @@ interface NotesContextValue {
 
   // Notes mutations
   addNoteOptimistically: (note: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null }) => void
+  updateNoteOptimistically: (noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrl' | 'isStarred' | 'isShared' | 'audioUrl'>>) => void
   deleteNoteOptimistically: (noteId: string) => void
   addTagToNoteOptimistically: (noteId: string, tag: { id: string; name: string }) => void
   removeTagFromNoteOptimistically: (noteId: string, tagId: string) => void
@@ -122,6 +123,40 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
         // 4. Rollback: remove temp note
         setNotes(prev => prev.filter(n => n.id !== tempId))
         toast.error('Failed to save note. Please try again.')
+      })
+  }, [])
+
+  // ── Update Note Optimistically ───────────────────────────────────────────
+
+  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrl' | 'isStarred' | 'isShared' | 'audioUrl'>>) => {
+    // 1. Snapshot for rollback
+    let originalNote: Note | undefined
+
+    setNotes(prev => {
+      originalNote = prev.find(n => n.id === noteId)
+      return prev.map(n => 
+        n.id === noteId 
+          ? { ...n, ...updates, updatedAt: new Date().toISOString() } 
+          : n
+      )
+    })
+
+    // 2. Fire API in background
+    fetch(`/api/notes/${noteId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to update note')
+        toast.success('Note updated')
+      })
+      .catch(() => {
+        // 3. Rollback
+        if (originalNote) {
+          setNotes(prev => prev.map(n => n.id === noteId ? originalNote! : n))
+        }
+        toast.error('Failed to update note')
       })
   }, [])
 
@@ -334,6 +369,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       notes,
       tags,
       addNoteOptimistically,
+      updateNoteOptimistically,
       deleteNoteOptimistically,
       addTagToNoteOptimistically,
       removeTagFromNoteOptimistically,
@@ -346,6 +382,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       notes,
       tags,
       addNoteOptimistically,
+      updateNoteOptimistically,
       deleteNoteOptimistically,
       addTagToNoteOptimistically,
       removeTagFromNoteOptimistically,

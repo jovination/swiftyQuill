@@ -1,0 +1,522 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { useNotes, type Note } from "./NotesContext"
+import { X, Add, Mic, ArrowUp, Image as ImageIcon, Video, Sparkles, Mic3 } from "reicon-react"
+import { LuExpand, LuShrink } from "react-icons/lu"
+import { MdDone } from "react-icons/md"
+import { RxCross2 } from "react-icons/rx"
+import { FaMicrophone, FaPause, FaStop, FaPlay } from "react-icons/fa6"
+import { BsThreeDots } from "react-icons/bs"
+import { RiDeleteBinLine } from "react-icons/ri"
+
+interface NotePreviewDialogProps {
+  note: Note | null
+  isOpen: boolean
+  onClose: () => void
+}
+
+export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogProps) {
+  const { updateNoteOptimistically } = useNotes()
+  const [title, setTitle] = useState("")
+  const [content, setContent] = useState("")
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Recording states
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'paused' | 'done'>('idle')
+  const [recordingDuration, setRecordingDuration] = useState(0)
+  const recordingDurationRef = useRef(0)
+  const [isExpandedRecorder, setIsExpandedRecorder] = useState(false)
+  const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+
+  // Preview playback states
+  const audioElementRef = useRef<HTMLAudioElement | null>(null)
+  const [playbackStatus, setPlaybackStatus] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [playbackProgress, setPlaybackProgress] = useState(0)
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<BlobPart[]>([])
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (note) {
+      setTitle(note.title)
+      setContent(note.content)
+      setAudioUrl(note.audioUrl || null)
+      setRecordingStatus('idle')
+      setIsExpandedRecorder(false)
+      setWaveformHeights([])
+      setRecordingDuration(0)
+      recordingDurationRef.current = 0
+      setPlaybackProgress(0)
+      setPlaybackStatus('idle')
+      if (audioElementRef.current) {
+        audioElementRef.current.pause()
+        audioElementRef.current = null
+      }
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    }
+  }, [note])
+
+  useEffect(() => {
+    if (!isOpen && recordingStatus !== 'idle') {
+      handleDiscard()
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+    }
+  }, [content, isOpen])
+
+  // Waveform Animation
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (recordingStatus === 'recording') {
+      interval = setInterval(() => {
+        setWaveformHeights(prev => {
+          const newHeight = isExpandedRecorder ? Math.floor(Math.random() * 24) + 6 : Math.floor(Math.random() * 18) + 6
+          const next = [...prev, newHeight]
+          const maxBars = isExpandedRecorder ? 60 : 30
+          if (next.length > maxBars) return next.slice(next.length - maxBars)
+          return next
+        })
+      }, 100)
+    } else if (recordingStatus === 'idle') {
+      setWaveformHeights([])
+    }
+    return () => clearInterval(interval)
+  }, [recordingStatus, isExpandedRecorder])
+
+  // Cleanup recording on unmount
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      }
+    }
+  }, [])
+
+  if (!note) return null
+
+  const handleUpdate = () => {
+    if (recordingStatus !== 'idle') {
+      handleDiscard()
+    }
+    updateNoteOptimistically(note.id, { title, content, audioUrl })
+    onClose()
+  }
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = `${e.target.scrollHeight}px`
+  }
+
+  const formatDuration = (seconds: number) => {
+    if (!isFinite(seconds) || isNaN(seconds)) return "0:00"
+    const hrs = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    if (hrs > 0) return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const audioUrlPreview = URL.createObjectURL(blob)
+        const audio = new Audio(audioUrlPreview)
+        audio.ontimeupdate = () => {
+          let dur = audio.duration
+          if (!dur || dur === Infinity) dur = recordingDurationRef.current
+          if (dur > 0) {
+            setPlaybackProgress((audio.currentTime / dur) * 100)
+          }
+        }
+        audio.onended = () => {
+          setPlaybackStatus('idle')
+          setPlaybackProgress(100)
+        }
+        audioElementRef.current = audio
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start(200)
+      setRecordingStatus('recording')
+      setRecordingDuration(0)
+      recordingDurationRef.current = 0
+
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          const next = prev + 1
+          recordingDurationRef.current = next
+          return next
+        })
+      }, 1000)
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
+    }
+  }
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && recordingStatus === 'recording') {
+      mediaRecorderRef.current.pause()
+      setRecordingStatus('paused')
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    }
+  }
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && recordingStatus === 'paused') {
+      mediaRecorderRef.current.resume()
+      setRecordingStatus('recording')
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          const next = prev + 1
+          recordingDurationRef.current = next
+          return next
+        })
+      }, 1000)
+    }
+  }
+
+  const handleDiscard = () => {
+    if (mediaRecorderRef.current && recordingStatus !== 'idle') {
+      mediaRecorderRef.current.stop()
+    }
+    setRecordingStatus('idle')
+    setRecordingDuration(0)
+    recordingDurationRef.current = 0
+    setPlaybackProgress(0)
+    setPlaybackStatus('idle')
+    setWaveformHeights([])
+    if (audioElementRef.current) {
+      audioElementRef.current.pause()
+      audioElementRef.current = null
+    }
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+  }
+
+  const finishRecording = () => {
+    if (mediaRecorderRef.current && recordingStatus !== 'idle') {
+      mediaRecorderRef.current.stop()
+      setRecordingStatus('done')
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    }
+  }
+
+  const togglePlayback = () => {
+    if (!audioElementRef.current) return
+    if (playbackStatus === 'playing') {
+      audioElementRef.current.pause()
+      setPlaybackStatus('paused')
+    } else {
+      if (playbackProgress >= 100) {
+        audioElementRef.current.currentTime = 0
+      }
+      audioElementRef.current.play()
+      setPlaybackStatus('playing')
+    }
+  }
+
+  const handleSaveAudioNote = () => {
+    const finalBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+    const reader = new FileReader()
+    reader.readAsDataURL(finalBlob)
+    reader.onloadend = () => {
+      const base64data = reader.result as string
+      setAudioUrl(base64data)
+      handleDiscard() // Reset recording UI state
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[550px] w-full p-6 sm:p-8 rounded-[32px] bg-[#F4F4F5] dark:bg-[#18181A] border border-white/40 dark:border-white/10 shadow-2xl [&>button]:hidden gap-0">
+        
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="font-bold text-[28px] sm:text-[32px] text-gray-900 dark:text-gray-100 flex-1">
+            <input 
+              value={title} 
+              onChange={e => setTitle(e.target.value)} 
+              className="bg-transparent w-full outline-none border-none placeholder-gray-400"
+              placeholder="Note Title"
+            />
+          </div>
+          <button onClick={onClose} className="p-2 ml-4 -mr-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-gray-700 dark:text-gray-300 shrink-0">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex flex-col gap-5 min-h-[250px]">
+          {/* Images/Media Row */}
+          {note.imageUrl && (
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar">
+              <img 
+                src={note.imageUrl} 
+                alt="Attachment" 
+                className="w-[100px] h-[100px] shrink-0 rounded-[22px] object-cover shadow-sm border border-black/5 dark:border-white/5" 
+              />
+            </div>
+          )}
+          
+          {/* Text Area */}
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={handleTextareaChange}
+            placeholder="Write something..."
+            className="w-full text-[20px] sm:text-[22px] leading-snug bg-transparent border-none outline-none resize-none placeholder-gray-400 dark:placeholder-gray-600 text-gray-800 dark:text-gray-100 font-medium"
+            rows={4}
+          />
+
+          {/* Recorder UI */}
+          {recordingStatus !== 'idle' && (
+            isExpandedRecorder ? (
+                <div className="bg-white dark:bg-[#2C2C2E] flex flex-col justify-between w-full h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3 mt-4 relative">
+                    {/* Header */}
+                    <div className="flex justify-between items-center w-full">
+                        <span className={`font-medium text-sm ${recordingStatus === 'recording' ? 'text-[#58A942]' : recordingStatus === 'done' ? 'text-green-400' : 'text-[#58A942]'}`}>
+                            {recordingStatus === 'done' ? 'Ready to Attach' : recordingStatus === 'paused' ? 'Recording Paused' : 'Recording...'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsExpandedRecorder(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition">
+                                <LuShrink className="text-lg" />
+                            </button>
+                            <BsThreeDots className="text-xl text-gray-800 dark:text-white ml-2" />
+                        </div>
+                    </div>
+
+                    {/* Waveform area */}
+                    <div className="w-full h-24 bg-[#F4F4F5] dark:bg-[#18181A] rounded-full px-8 relative border border-black/5 dark:border-white/5 flex items-center overflow-hidden">
+                        <div className="w-full h-full overflow-hidden relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center gap-[3px]">
+                                {/* Animated active bars */}
+                                {waveformHeights.map((h, i) => (
+                                    <div key={`active-${i}`} style={{ height: `${h}px` }} className={`w-[2px] min-w-[2px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-gray-400/40 dark:bg-gray-600/40') : 'bg-green-400'}`}></div>
+                                ))}
+                                
+                                {/* Playhead */}
+                                {recordingStatus !== 'done' && (
+                                    <div className="h-16 w-px min-w-[1px] bg-green-400 relative mx-1">
+                                        <div className="w-2.5 h-2.5 bg-green-400 rounded-full absolute -top-1.5 -translate-x-[4px]"></div>
+                                    </div>
+                                )}
+
+                                {/* Mock inactive bars */}
+                                {[...Array(100)].map((_, i) => (
+                                    <div key={`inactive-${i}`} className="w-[2px] min-w-[2px] h-1.5 bg-gray-400/30 dark:bg-gray-600/30 rounded-full"></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex justify-between items-center w-full pt-2">
+                        <span className={`text-[32px] font-medium tracking-tight ${recordingStatus === 'done' ? 'text-gray-800 dark:text-white' : 'text-[#58A942]'}`}>
+                            {recordingStatus === 'done' ? formatDuration(audioElementRef.current?.duration && isFinite(audioElementRef.current.duration) ? audioElementRef.current.duration : recordingDurationRef.current) : formatDuration(recordingDuration)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            {recordingStatus === 'done' ? (
+                                <>
+                                    <button onClick={handleDiscard} className="h-[40px] rounded-full bg-[#F4F4F5] dark:bg-[#18181A] hover:opacity-80 text-gray-800 dark:text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <RxCross2 className="text-[14px]" />
+                                        Discard
+                                    </button>
+                                    <button onClick={togglePlayback} className="h-[40px] rounded-full bg-[#F4F4F5] dark:bg-[#18181A] hover:opacity-80 text-gray-800 dark:text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        {playbackStatus === 'playing' ? <FaPause className="text-[12px]" /> : <FaPlay className="text-[12px] ml-0.5" />}
+                                    </button>
+                                    <button onClick={handleSaveAudioNote} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-6 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <MdDone className="text-[14px] mr-1" />
+                                        Attach
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    {recordingStatus === 'recording' ? (
+                                        <button onClick={pauseRecording} className="h-[40px] rounded-full bg-[#F4F4F5] dark:bg-[#18181A] hover:opacity-80 text-gray-800 dark:text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                            <FaPause className="text-[10px]" />
+                                            Pause
+                                        </button>
+                                    ) : (
+                                        <button onClick={resumeRecording} className="h-[40px] rounded-full bg-[#F4F4F5] dark:bg-[#18181A] hover:opacity-80 text-gray-800 dark:text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                            <FaPlay className="text-[10px]" />
+                                            Resume
+                                        </button>
+                                    )}
+                                    <button onClick={finishRecording} className="h-[40px] rounded-full bg-[#FF3B30] hover:bg-[#FF3B30]/90 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <FaStop className="text-[10px]" />
+                                    </button>
+                                    <button onClick={finishRecording} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                        <MdDone className="text-[14px]" />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="bg-white dark:bg-[#2C2C2E] flex items-center justify-between w-full h-[64px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[32px] px-5 mb-2 mt-4 relative">
+                    {/* Time & Dot */}
+                    <div className="flex items-center gap-2 min-w-[50px]">
+                        {recordingStatus === 'recording' && <div className="w-2 h-2 rounded-full bg-[#58A942] animate-pulse"></div>}
+                        {recordingStatus === 'paused' && <div className="w-2 h-2 rounded-full bg-[#58A942]"></div>}
+                        <span className={`text-[15px] font-medium tracking-tight text-[#58A942]`}>
+                            {formatDuration(recordingDuration)} 
+                        </span>
+                    </div>
+
+                    {/* Waveform / Dotted Line */}
+                    <div className="flex-1 flex items-center justify-center overflow-hidden h-full px-2 gap-1">
+                            <div className="flex items-center gap-[3px] w-full justify-start overflow-hidden">
+                                {/* Animated waveform bars filling from left to right */}
+                                {waveformHeights.map((h, i) => (
+                                    <div key={`wave-${i}`} style={{ height: `${h}px` }} className={`w-[2.5px] min-w-[2.5px] rounded-full transition-all duration-100 ${recordingStatus === 'done' ? (((i / waveformHeights.length) * 100) <= playbackProgress ? 'bg-[#58A942]' : 'bg-[#F4F4F5] dark:bg-[#18181A]') : 'bg-[#58A942]'}`}></div>
+                                ))}
+                                {/* Dotted line for remaining space */}
+                                <div className="flex-1 flex justify-between items-center pl-2 opacity-30">
+                                    {[...Array(24)].map((_, i) => <div key={`rec-dot-${i}`} className="w-1 h-1 bg-gray-400 rounded-full"></div>)}
+                                </div>
+                            </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="flex items-center gap-2">
+                        {recordingStatus === 'done' ? (
+                            <>
+                                <button onClick={() => setIsExpandedRecorder(true)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F4F4F5] dark:hover:bg-[#18181A] transition">
+                                    <LuExpand className="text-md" />
+                                </button>
+                                <button onClick={handleDiscard} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F4F4F5] dark:hover:bg-[#18181A] transition">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
+                                <button onClick={togglePlayback} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:opacity-80 transition">
+                                    {playbackStatus === 'playing' ? <FaPause className="text-[12px]" /> : <FaPlay className="text-[12px] ml-0.5" />}
+                                </button>
+                                <button onClick={handleSaveAudioNote} className="w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition shadow-sm">
+                                    <MdDone className="text-[18px]" />
+                                </button>
+                                <button onClick={handleDiscard} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F4F4F5] dark:hover:bg-[#18181A] transition">
+                                    <RxCross2 className="text-xl" />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => setIsExpandedRecorder(true)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F4F4F5] dark:hover:bg-[#18181A] transition">
+                                    <LuExpand className="text-md" />
+                                </button>
+                                <button onClick={handleDiscard} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F4F4F5] dark:hover:bg-[#18181A] transition">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
+                                {recordingStatus === 'recording' ? (
+                                    <button onClick={pauseRecording} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:opacity-80 transition">
+                                        <FaPause className="text-[12px]" />
+                                    </button>
+                                ) : (
+                                    <button onClick={resumeRecording} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:opacity-80 transition">
+                                        <FaPlay className="text-[12px] ml-0.5" />
+                                    </button>
+                                )}
+                                <button onClick={finishRecording} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#FF3B30] hover:bg-[#FF3B30]/90 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <FaStop className="text-[10px]" />
+                                </button>
+                                <button onClick={finishRecording} className="w-10 h-10 flex items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <MdDone className="text-[14px]" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )
+          )}
+
+          {/* Voice Memo */}
+          {audioUrl && recordingStatus === 'idle' && (
+            <div className="mb-4 bg-black/5 dark:bg-white/5 rounded-2xl p-3 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white dark:bg-[#2C2C2E] flex items-center justify-center text-gray-700 dark:text-gray-300 shadow-sm">
+                    <Mic3 className="w-6 h-6" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Voice Memo attached</span>
+                    <span className="text-xs text-gray-500">Audio ready to play</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setAudioUrl(null)} 
+                  className="text-red-500 hover:text-red-600 w-8 h-8 flex items-center justify-center bg-red-50 dark:bg-red-500/10 rounded-full transition-colors"
+                >
+                  <RiDeleteBinLine className="text-[18px]" />
+                </button>
+              </div>
+              <audio controls src={audioUrl} className="w-full h-10 opacity-100 transition-all duration-300" />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Toolbar */}
+        <div className="mt-8 flex justify-between items-center bg-white dark:bg-[#242426] p-2 rounded-[28px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
+          <div className="flex gap-2 items-center">
+            <button className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
+              <Add className="w-6 h-6" />
+            </button>
+            <button className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
+              <Sparkles className="w-5 h-5" />
+            </button>
+            
+            {/* Toggle group */}
+            <div className="hidden sm:flex bg-[#F4F4F5] dark:bg-[#18181A] rounded-[22px] p-1.5 h-12 items-center ml-1">
+              <button className="flex items-center gap-2 px-4 h-full bg-white dark:bg-[#2C2C2E] rounded-[16px] shadow-sm text-[15px] font-medium text-gray-800 dark:text-gray-100">
+                <ImageIcon className="w-4 h-4" />
+                Image
+              </button>
+              <button className="flex items-center gap-2 px-4 h-full text-gray-500 dark:text-gray-400 text-[15px] font-medium hover:text-gray-700 transition-colors">
+                <Video className="w-4 h-4" />
+                Video
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 pr-1">
+            <button 
+              onClick={() => {
+                if (recordingStatus === 'idle') startRecording()
+              }}
+              className="p-2 transition-colors text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <Mic className="w-[22px] h-[22px]" />
+            </button>
+            <button 
+              onClick={handleUpdate}
+              className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#1C1C1E] text-white dark:bg-white dark:text-black hover:scale-105 active:scale-95 transition-all shadow-md"
+            >
+              <ArrowUp className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+      </DialogContent>
+    </Dialog>
+  )
+}

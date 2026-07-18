@@ -22,7 +22,7 @@ const Navbar = () => {
                     alt="logo"
                 />
             </Link>
-            <div className="hidden  max-w-[650px] w-full h-10 bg-muted hover:bg-muted/80 rounded-xl px-3 md:flex items-center justify-between">
+            <div className="hidden  max-w-3xl w-full  h-10 bg-muted hover:bg-muted/80 rounded-xl px-3 md:flex items-center justify-between">
             <div className="flex items-center gap-1">
             <IoSearchOutline className='text-2xl text-muted-foreground ' />
             <input className="bg-transparent focus:outline-none focus:ring-0 focus:border-none border-none placeholder:text-md" placeholder="Search" />

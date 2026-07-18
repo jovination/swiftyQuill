@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
-import { FiSend } from "react-icons/fi"
+import { FiSend, FiGrid, FiList } from "react-icons/fi"
 import { Mic3 } from 'reicon-react';
 import { FluentEmoji } from '@lobehub/fluent-emoji';
 import { HiOutlineDotsHorizontal } from "react-icons/hi"
@@ -22,6 +22,7 @@ import { ImSpinner8 } from "react-icons/im"
 import { RiDeleteBinLine } from "react-icons/ri";
 import { Button } from './ui/button'
 import { useNotes, type Note } from './NotesContext'
+import { NotePreviewDialog } from './NotePreviewDialog'
 
 interface NotesListProps {
   currentTag: string
@@ -37,6 +38,8 @@ export default function NotesList({ currentTag }: NotesListProps) {
   } = useNotes()
 
   const [isInputVisible, setIsInputVisible] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
   const toggleInputField = () => {
     setIsInputVisible(!isInputVisible);
@@ -89,14 +92,32 @@ export default function NotesList({ currentTag }: NotesListProps) {
   }
 
   return (
-    <div className="max-w-3xl w-full space-y-4 mt-10">
-      {filteredNotes.map((note) => (
-        <div 
-          key={note.id} 
-          className={`group border border-gray-100 dark:border-border rounded-3xl p-5 hover:bg-black/5 dark:hover:bg-muted/50 hover:border-none transition-all duration-300 relative ${
-            note.isPending ? 'opacity-70' : ''
-          }`}
-        >
+    <div className="w-full mt-10 max-w-4xl mx-auto">
+      <div className="flex justify-end mb-4">
+        <div className="flex bg-black/5 dark:bg-muted/50 rounded-lg p-1">
+          <button 
+            onClick={() => setViewMode('list')} 
+            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <FiList className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => setViewMode('grid')} 
+            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <FiGrid className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      
+      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start' : 'flex flex-col gap-4'}>
+        {filteredNotes.map((note) => (
+          <div 
+            key={note.id} 
+            className={`group border border-gray-100 dark:border-border rounded-3xl p-5 hover:bg-black/5 dark:hover:bg-muted/50 hover:border-none transition-all duration-300 relative flex flex-col ${
+              note.isPending ? 'opacity-70' : ''
+            }`}
+          >
           {note.isPending && (
             <div className="absolute top-3 right-3">
               <ImSpinner8 className="animate-spin text-sm text-gray-400" />
@@ -163,10 +184,10 @@ export default function NotesList({ currentTag }: NotesListProps) {
             ))}
           </div>
          
-          <div className="flex justify-between items-center">
-            <a href={`/notes/${note.id}`} className="mt-3 text-primary text-sm hover:underline block">
+          <div className="flex justify-between items-center mt-auto">
+            <button onClick={() => setPreviewNote(note)} className="mt-3 text-primary text-sm hover:underline block text-left">
               View Note →
-            </a>
+            </button>
             <div className="flex gap-2 items-center">
               <span className="flex items-center text-sm px-3 py-1 bg-black/5 dark:bg-muted rounded-full gap-1 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/80 transition-all duration-300">
                 <FiSend />
@@ -231,6 +252,13 @@ export default function NotesList({ currentTag }: NotesListProps) {
           </div>
         </div>
       ))}
+      </div>
+      
+      <NotePreviewDialog 
+        note={previewNote} 
+        isOpen={!!previewNote} 
+        onClose={() => setPreviewNote(null)} 
+      />
     </div>
   )
-} 
+}
