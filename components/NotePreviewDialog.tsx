@@ -10,6 +10,7 @@ import { RxCross2 } from "react-icons/rx"
 import { FaMicrophone, FaPause, FaStop, FaPlay } from "react-icons/fa6"
 import { BsThreeDots } from "react-icons/bs"
 import { RiDeleteBinLine } from "react-icons/ri"
+import { ListTodo } from "lucide-react"
 
 interface NotePreviewDialogProps {
   note: Note | null
@@ -43,6 +44,42 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Scroll effect refs
+  const listRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  const updateScrollEffect = () => {
+    if (!listRef.current) return
+    const container = listRef.current
+    const scrollTop = container.scrollTop
+    const containerHeight = container.clientHeight
+    const containerCenterY = scrollTop + containerHeight / 2
+
+    itemRefs.current.forEach((item, idx) => {
+      if (!item) return
+      
+      // Use offsetTop instead of getBoundingClientRect to avoid jitter from transforms
+      const itemTop = item.offsetTop
+      const itemHeight = item.offsetHeight
+      const itemCenterY = itemTop + itemHeight / 2
+      
+      const distance = Math.abs(containerCenterY - itemCenterY)
+      const maxDistance = containerHeight / 1.5
+      
+      const normalizedDistance = Math.max(0, Math.min(distance / maxDistance, 1))
+      
+      item.style.transform = `translateY(0px) scale(1)`
+      item.style.opacity = `1`
+      item.style.zIndex = `10`
+    })
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(updateScrollEffect, 50)
+    }
+  }, [isOpen, content])
 
   useEffect(() => {
     if (note) {
@@ -156,6 +193,18 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
     setContent(e.target.value)
     e.target.style.height = 'auto'
     e.target.style.height = `${e.target.scrollHeight}px`
+  }
+
+  const toggleTodoList = () => {
+    if (content.trim().startsWith('- [')) {
+      setContent(content.split('\n').map(line => line.replace(/^- \[[ xX]\] /, '')).join('\n'))
+    } else {
+      if (content.trim() === '') {
+        setContent('- [ ] ')
+      } else {
+        setContent(content.split('\n').map(line => `- [ ] ${line}`).join('\n'))
+      }
+    }
   }
 
   const formatDuration = (seconds: number) => {
@@ -347,20 +396,90 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
           )}
           
           {/* Text Area */}
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleTextareaChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                if (title.trim() || content.trim()) handleUpdate()
-              }
-            }}
-            placeholder="Write something..."
-            className={`w-full text-[20px] sm:text-[22px] leading-snug bg-transparent border-none outline-none resize-none font-medium ${color ? 'placeholder-gray-600/60 text-gray-900' : 'placeholder-gray-400 dark:placeholder-gray-600 text-gray-800 dark:text-gray-100'}`}
-            rows={4}
-          />
+          {content.trim().startsWith('- [') ? (
+            <div 
+              ref={listRef}
+              onScroll={updateScrollEffect}
+              className="flex flex-col w-full gap-2 mt-1 mb-2 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1 pb-4 pt-4 relative"
+            >
+              {content.split('\n').map((line, idx) => {
+                const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
+                const rawText = line.replace(/^- \[[ xX]\] /, '');
+                
+                return (
+                  <div 
+                    key={idx} 
+                    ref={(el) => { itemRefs.current[idx] = el }}
+                    className={`flex items-start gap-3 w-full p-3.5 rounded-2xl transition-all origin-center relative ${color ? 'bg-black/5 dark:bg-black/20' : 'bg-white dark:bg-[#2C2C2E] shadow-[0_2px_10px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.2)]'} ${isChecked ? 'opacity-50 grayscale-[0.5]' : ''}`}
+                    style={{ willChange: 'transform, opacity' }}
+                  >
+                    <button 
+                      onClick={() => {
+                        const lines = content.split('\n');
+                        lines[idx] = lines[idx].replace(/^- \[[ xX]\]/, isChecked ? '- [ ]' : '- [x]');
+                        setContent(lines.join('\n'));
+                      }}
+                      className={`w-6 h-6 mt-0.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isChecked ? 'bg-[#58A942] border-[#58A942]' : (color ? 'border-gray-500/60 hover:bg-black/10' : 'border-gray-300 dark:border-gray-500 hover:bg-black/5 dark:hover:bg-white/5')}`}
+                    >
+                      {isChecked && <span className="text-white text-[12px] font-bold">✓</span>}
+                    </button>
+                    <textarea 
+                      value={rawText}
+                      onChange={(e) => {
+                        const lines = content.split('\n');
+                        lines[idx] = `- [${isChecked ? 'x' : ' '}] ${e.target.value}`;
+                        setContent(lines.join('\n'));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const lines = content.split('\n');
+                          lines.splice(idx + 1, 0, '- [ ] ');
+                          setContent(lines.join('\n'));
+                        } else if (e.key === 'Backspace' && rawText === '') {
+                          e.preventDefault();
+                          const lines = content.split('\n');
+                          lines.splice(idx, 1);
+                          setContent(lines.join('\n'));
+                        }
+                      }}
+                      ref={(el) => {
+                        if (el) {
+                          el.style.height = 'auto';
+                          el.style.height = `${el.scrollHeight}px`;
+                        }
+                      }}
+                      rows={1}
+                      className={`w-full bg-transparent border-none outline-none resize-none text-[16px] sm:text-[18px] leading-snug font-medium ${isChecked ? 'text-gray-500 line-through dark:text-gray-400' : (color ? 'text-gray-900' : 'text-gray-800 dark:text-gray-100')}`}
+                    />
+                  </div>
+                )
+              })}
+              <div className="flex justify-center mt-2 w-full pb-6 relative z-10" style={{ transform: 'translateZ(0)' }}>
+                <button
+                  onClick={() => setContent(content + (content.endsWith('\n') ? '' : '\n') + '- [ ] ')}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shadow-sm ${color ? 'bg-black/10 text-gray-800 hover:bg-black/20' : 'bg-white dark:bg-[#3A3A3C] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#4A4A4C] border border-black/5 dark:border-white/5'}`}
+                >
+                  <Add className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleTextareaChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if (title.trim() || content.trim()) handleUpdate()
+                }
+              }}
+              placeholder="Write something..."
+              className={`w-full text-[20px] sm:text-[22px] leading-snug bg-transparent border-none outline-none resize-none font-medium ${color ? 'placeholder-gray-600/60 text-gray-900' : 'placeholder-gray-400 dark:placeholder-gray-600 text-gray-800 dark:text-gray-100'}`}
+              rows={4}
+            />
+          )}
 
           {/* Recorder UI */}
           {recordingStatus !== 'idle' && (
@@ -561,15 +680,15 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
               <Sparkles className="w-5 h-5" />
             </button>
             
+            <button onClick={toggleTodoList} className={`w-12 h-12 flex items-center justify-center rounded-[20px] ${content.trim().startsWith('- [') ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300'} hover:brightness-95 transition-all`}>
+              <ListTodo className="w-5 h-5" />
+            </button>
+            
             {/* Toggle group */}
             <div className="hidden sm:flex bg-[#F4F4F5] dark:bg-[#18181A] rounded-[22px] p-1.5 h-12 items-center ml-1">
               <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 h-full bg-white dark:bg-[#2C2C2E] rounded-[16px] shadow-sm text-[15px] font-medium text-gray-800 dark:text-gray-100">
                 <ImageIcon className="w-4 h-4" />
                 Image
-              </button>
-              <button className="flex items-center gap-2 px-4 h-full text-gray-500 dark:text-gray-400 text-[15px] font-medium hover:text-gray-700 transition-colors">
-                <Video className="w-4 h-4" />
-                Video
               </button>
             </div>
           </div>

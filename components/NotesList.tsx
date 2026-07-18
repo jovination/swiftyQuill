@@ -128,7 +128,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
               <ImSpinner8 className="animate-spin text-sm text-gray-400" />
             </div>
           )}
-          <div className={`flex justify-between items-center text-xs mb-1 ${note.color ? 'text-gray-700' : 'text-muted-foreground'}`}>
+          <div className={`flex justify-between items-center text-xs mb-1 ${note.color ? 'text-gray-900' : 'text-muted-foreground'}`}>
             <span suppressHydrationWarning className="text-date">{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
@@ -149,25 +149,25 @@ export default function NotesList({ currentTag }: NotesListProps) {
           )}
 
           {note.content.trim().startsWith('- [') ? (
-            <div className="flex flex-col gap-1.5 mb-4">
-              {note.content.split('\n').slice(0, 3).map((line, idx) => {
+            <div className={`flex flex-col gap-1.5 mb-4 overflow-hidden rounded-xl p-2 px-3 ${note.color ? 'bg-black/10' : 'bg-black/10 dark:bg-black/10'}`}>
+              {note.content.split('\n').slice(0, 2).map((line, idx) => {
                 const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
                 const rawText = line.replace(/^- \[[ xX]\] /, '');
                 const { emoji, rest } = extractLeadingEmoji(rawText);
                 return (
                   <div key={idx} className="flex items-center gap-2">
-                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-[#58A942] border-[#58A942]' : (note.color ? 'border-gray-500 bg-transparent' : 'border-gray-300 dark:border-border bg-white dark:bg-card')}`}>
-                      {isChecked && <span className="text-white text-[8px] font-bold">✓</span>}
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${isChecked ? 'bg-[#00b505] border-[#00b505]' : (note.color ? 'border-gray-500 bg-transparent' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]')}`}>
+                      {isChecked && <span className="text-white text-[10px] font-bold">✓</span>}
                     </div>
-                    <span className={`text-sm truncate ${isChecked ? (note.color ? 'text-gray-600 line-through' : 'text-gray-400 dark:text-muted-foreground line-through') : (note.color ? 'text-gray-900' : 'text-gray-600 dark:text-muted-foreground')}`}>
-                      {emoji && <span className="mr-1"><FluentEmoji emoji={emoji} size={14} /></span>}
+                    <span className={`text-sm truncate ${isChecked ? (note.color ? 'text-gray-600/80 line-through' : 'text-gray-400 dark:text-muted-foreground line-through') : (note.color ? 'text-gray-900 font-medium' : 'text-gray-700 font-medium dark:text-gray-200 dark:font-light')}`}>
+                      {emoji && <span className="mr-1.5"><FluentEmoji emoji={emoji} size={14} /></span>}
                       {rest || rawText}
                     </span>
                   </div>
                 );
               })}
-              {note.content.split('\n').length > 3 && (
-                <span className={`text-xs mt-0.5 ${note.color ? 'text-gray-600' : 'text-gray-400 dark:text-muted-foreground'}`}>+{note.content.split('\n').length - 3} more items...</span>
+              {note.content.split('\n').length > 2 && (
+                <span className={`text-[11px] font-medium mt-0.5 ${note.color ? 'text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>+{note.content.split('\n').length - 2} more items</span>
               )}
             </div>
           ) : (
@@ -193,7 +193,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
                 <div className="w-10 h-10 rounded-full flex items-center justify-center"></div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">Voice Memo attached</span>
-                  <span className="text-xs">Audio ready to play</span>
+                  <span className="text-xs text-muted-foreground">Audio ready to play</span>
                 </div>
               </div>
               <audio controls className="w-full h-0" />
