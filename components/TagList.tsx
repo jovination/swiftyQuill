@@ -45,8 +45,8 @@ export default function TagList({ currentTag }: TagListProps) {
             href={`/notes${tag.name === 'All' ? '' : `?tag=${tag.name}`}`}
             className={`px-3 py-2 text-sm rounded-full transition-all duration-200 ${
               (!currentTag || currentTag === 'All' ? tag.name === 'All' : currentTag === tag.name)
-                ? 'bg-black text-white'
-                : 'bg-black/5 hover:bg-black/10 text-black'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-foreground'
             } ${tag.isPending ? 'opacity-60' : ''}`}
             onContextMenu={(e) => {
               if (!tag.isDefault) {
@@ -87,7 +87,7 @@ export default function TagList({ currentTag }: TagListProps) {
           </DialogHeader>
           <DialogFooter className="flex justify-end gap-2 mt-4">
             <Button 
-              className="px-5 h-11 rounded-[16px] bg-black/5 hover:bg-black/10 text-black" 
+              className="px-5 h-11 rounded-[16px] bg-muted hover:bg-muted/80 text-foreground" 
               onClick={() => {
                 setDeleteDialogOpen(false)
                 setTagToDelete(null)
@@ -96,7 +96,7 @@ export default function TagList({ currentTag }: TagListProps) {
               Cancel
             </Button>
             <Button 
-              className="px-5 h-11 rounded-[16px] bg-red-300 hover:bg-red-600 text-white" 
+              className="px-5 h-11 rounded-[16px] bg-destructive hover:bg-destructive/90 text-destructive-foreground" 
               onClick={() => tagToDelete && handleDeleteTag(tagToDelete.id)}
             >
               Delete

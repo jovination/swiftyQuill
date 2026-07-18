@@ -90,14 +90,14 @@ export default async function NotesPage({
       <Toaster position="top-right" />
       <Navbar />
       <NotesProvider initialNotes={serializedNotes} initialTags={serializedTags}>
-        <div className="md:hidden max-w-[650px] w-full h-10 bg-black/5 rounded-xl px-3 flex items-center justify-between mt-6">
+        <div className="md:hidden max-w-[650px] w-full h-10 bg-muted rounded-xl px-3 flex items-center justify-between mt-6">
           <div className="flex items-center gap-1">
-            <IoSearchOutline className='text-2xl text-gray-400' />
+            <IoSearchOutline className='text-2xl text-muted-foreground' />
             <input className="bg-transparent focus:outline-none focus:ring-0 focus:border-none border-none placeholder:text-md" placeholder="Search" />
           </div>
           <div className="flex items-center gap-1">
-            <MdOutlineKeyboardCommandKey className='text-xl text-gray-400' />
-            <span className="text-gray-500 text-md uppercase">k</span>
+            <MdOutlineKeyboardCommandKey className='text-xl text-muted-foreground' />
+            <span className="text-muted-foreground text-md uppercase">k</span>
           </div>
         </div>
         <TagList currentTag={currentTag} />

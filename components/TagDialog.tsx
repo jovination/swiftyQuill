@@ -42,8 +42,8 @@ function TagDialog() {
         <Tooltip>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <Button className="bg-black/5 w-9 h-9 rounded-full hover:bg-black/10">
-                <Plus className="h-5 w-5 text-black" />
+              <Button className="bg-muted w-9 h-9 rounded-full hover:bg-muted/80">
+                <Plus className="h-5 w-5 text-foreground" />
               </Button>
             </DialogTrigger>
           </TooltipTrigger>
@@ -70,14 +70,14 @@ function TagDialog() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Meeting notes, To-do, Agendas"
-                className="w-full h-[48px] rounded-[16px] bg-black/5 px-6 text-sm font-medium border-none focus:outline-none focus:border-none focus:ring-0"
+                className="w-full h-[48px] rounded-[16px] bg-muted px-6 text-sm font-medium border-none focus:outline-none focus:border-none focus:ring-0"
                 required
               />
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
             <Button 
-              className="px-5 h-11 rounded-[16px] bg-black/5 hover:bg-black/10 text-black" 
+              className="px-5 h-11 rounded-[16px] bg-muted hover:bg-muted/80 text-foreground" 
               type="button"
               onClick={() => setOpen(false)}
             >

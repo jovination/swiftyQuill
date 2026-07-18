@@ -8,7 +8,7 @@ async function Page(){
         redirect("/notes")
     }
     return(
-        <div className="bg-[#FEFEFE]">
+        <div className="bg-background">
         <LoginForm />
         </div>
     )

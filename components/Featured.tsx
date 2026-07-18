@@ -28,12 +28,12 @@ function Featured({ features = featuresData }) {
       {features.map((feature, index) => (
         <div 
           key={index} 
-          className="w-[345px] h-auto rounded-[30px] p-6 bg-[#0d0d0d]/5 shadow-sm flex flex-col gap-10 justify-between"
+          className="w-[345px] h-auto rounded-[30px] p-6 bg-muted/50 dark:bg-white/5 shadow-sm flex flex-col gap-10 justify-between transition-colors"
         >
-          <feature.icon className="text-4xl text-black self-end" />
-          <div className="space-y-2 p-6 bg-[#FEFEFE] rounded-[20px]">
-            <span className="text-xl font-medium">{feature.title}</span>
-            <p className="text-sm text-gray-600">
+          <feature.icon className="text-4xl text-foreground self-end" />
+          <div className="space-y-2 p-6 bg-card dark:bg-white/10 rounded-[20px] transition-colors">
+            <span className="text-xl font-medium dark:text-white">{feature.title}</span>
+            <p className="text-sm text-muted-foreground dark:text-gray-300">
               {feature.description}
             </p>
           </div>

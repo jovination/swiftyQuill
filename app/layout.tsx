@@ -2,8 +2,6 @@ import type { Metadata } from "next"
 import { Instrument_Serif, Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SessionProvider } from "next-auth/react"
-import { Providers } from "@/app/providers"
-
 import "./globals.css"
 
 const instrumentSerif = Instrument_Serif({
@@ -36,11 +34,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        <Providers>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          disableTransitionOnChange
+        >
           <SessionProvider>
             {children}
           </SessionProvider>
-        </Providers>
+        </ThemeProvider>
       </body>
     </html>
   )

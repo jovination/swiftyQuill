@@ -85,7 +85,7 @@ function SignupPortal() {
           Sign up
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] md:w-[450px] w-[365px] rounded-3xl">
+      <DialogContent className="sm:max-w-[425px] md:w-[450px] w-[365px] rounded-3xl" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">Create your account</DialogTitle>
         </DialogHeader>

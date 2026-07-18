@@ -12,19 +12,23 @@ import {
 } from "@/components/ui/drawer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { IoIosArrowForward } from "react-icons/io";
-import { BsBrightnessHigh } from "react-icons/bs";
+import { BsBrightnessHigh, BsMoonStars } from "react-icons/bs";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 
 function ProfilePortal() {
     const { data: session } = useSession();
+    const { theme, setTheme } = useTheme();
     const [isMobile, setIsMobile] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
     
     const displayName = session?.user?.name || session?.user?.email?.split('@')[0] || "User";
     const userImage = session?.user?.image || "";
     const userEmail = session?.user?.email || "";
 
     useEffect(() => {
+        setMounted(true);
         const checkIsMobile = () => {
             setIsMobile(window.innerWidth < 768);
         };
@@ -35,7 +39,6 @@ function ProfilePortal() {
         };
     }, []);
 
-    // Get initials for avatar fallback
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -44,6 +47,13 @@ function ProfilePortal() {
             .toUpperCase()
             .slice(0, 1);
     };
+
+    const cycleTheme = () => {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
+    };
+
+    const themeLabel = mounted ? (theme === 'dark' ? 'Night' : 'Day') : 'Day';
+    const ThemeIcon = mounted && theme === 'dark' ? BsMoonStars : BsBrightnessHigh;
 
     const ProfileContent = () => (
         <>
@@ -55,68 +65,70 @@ function ProfilePortal() {
                 <span className="text-md font-semibold text-center">{displayName}</span>
             </div>
 
-            <div className="w-full bg-white h-auto rounded-[20px] shadow-md overflow-hidden mb-4">
-                <div className="w-full h-[46px] border-b flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+            <div className="w-full bg-white dark:bg-card h-auto rounded-[20px] shadow-md overflow-hidden mb-4">
+                <div className="w-full h-[46px] border-b dark:border-border flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors">
                     <span className="text-sm">Name</span>
                     <div className="flex items-center space-x-2">
                         <span className="text-sm">{displayName}</span>
-                        <IoIosArrowForward className="text-sm text-gray-500" />
+                        <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                     </div>
                 </div>
 
-                <div className="w-full h-[46px] border-b flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+                <div className="w-full h-[46px] border-b dark:border-border flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors">
                     <span className="text-sm">Language</span>
                     <div className="flex items-center space-x-2">
                         <span className="text-sm">Detect language</span>
-                        <IoIosArrowForward className="text-sm text-gray-500" />
+                        <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                     </div>
                 </div>
 
-                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors">
                     <div className="flex items-center space-x-2">
                         <span className="text-sm">Import notes</span>
-                        <span className="text-xs font-semibold flex items-center justify-center w-9 h-5 rounded text-white bg-black">New</span>
+                        <span className="text-xs font-semibold flex items-center justify-center w-9 h-5 rounded-md text-white bg-black dark:text-primary-foreground dark:bg-primary">New</span>
                     </div>
-                    <IoIosArrowForward className="text-sm text-gray-500" />
+                    <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                 </div>
             </div>
-
-            <div className="w-full bg-white h-auto rounded-[20px] shadow-md overflow-hidden mb-4">
-                <div className="w-full h-[46px] border-b flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+            <div className="w-full bg-white dark:bg-card h-auto rounded-[20px] shadow-md overflow-hidden mb-4">
+                <div
+                    className="w-full h-[46px] border-b dark:border-border flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors"
+                    onClick={cycleTheme}
+                >
                     <span className="text-sm">Theme</span>
                     <div className="flex items-center space-x-2">
-                        <BsBrightnessHigh className="text-sm text-gray-500" />   
-                        <span className="text-sm">Day</span>
-                        <IoIosArrowForward className="text-sm text-gray-500" />
+                        <ThemeIcon className="text-sm text-gray-500 dark:text-muted-foreground" />
+                        <span className="text-sm">{themeLabel}</span>
+                        <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                     </div>
                 </div>
 
-                <div className="w-full h-[46px] border-b flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+                <div className="w-full h-[46px] border-b dark:border-border flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors">
                     <span className="text-sm">Email</span>
                     <div className="flex items-center space-x-2">
                         <span className="text-sm">{userEmail}</span>
-                        <IoIosArrowForward className="text-sm text-gray-500" />
+                        <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                     </div>
                 </div>
 
-                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors">
                     <span className="text-sm">Password</span>
                     <div className="flex items-center space-x-2">
                         <span className="text-md">**********</span>
-                        <IoIosArrowForward className="text-sm text-gray-500" />
+                        <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                     </div>
                 </div>
             </div>
 
-            <div className="w-full bg-white h-auto rounded-[20px] shadow-md overflow-hidden">
-                <div className="w-full h-[46px] border-b flex justify-between items-center px-4 cursor-pointer hover:bg-black/10">
+            <div className="w-full bg-white dark:bg-card h-auto rounded-[20px] shadow-md overflow-hidden">
+                <div className="w-full h-[46px] border-b dark:border-border flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors">
                     <span className="text-sm">Help</span>
-                    <IoIosArrowForward className="text-sm text-gray-500" />
+                    <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                 </div>
 
-                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10" onClick={() => signOut()}>
+                <div className="w-full h-[46px] flex justify-between items-center px-4 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/50 transition-colors" onClick={() => signOut()}>
                     <span className="text-sm">Sign out</span>
-                    <IoIosArrowForward className="text-sm text-gray-500" />
+                    <IoIosArrowForward className="text-sm text-gray-500 dark:text-muted-foreground" />
                 </div>
             </div>
         </>
@@ -152,8 +164,9 @@ function ProfilePortal() {
                     <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
             </DialogTrigger>
-            <DialogContent className="max-w-[500px] w-full rounded-3xl">
+            <DialogContent className="max-w-[500px] w-full rounded-3xl" aria-describedby={undefined}>
                 <DialogHeader className="flex flex-col items-center">
+                    <DialogTitle className="sr-only">Profile</DialogTitle>
                 </DialogHeader>
                 <ProfileContent />
             </DialogContent>

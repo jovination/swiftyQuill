@@ -26,7 +26,7 @@ interface NoteData {
 }
 
 function TakingNotesButtons(){
-    const { addNoteOptimistically } = useNotes();
+    const { notes, addNoteOptimistically } = useNotes();
     const { data: session } = useSession();
     const [isInputVisible, setIsInputVisible] = useState(false);
     const [isTranscribeVisible, setIsTranscribeVisible] = useState(false);
@@ -261,9 +261,16 @@ function TakingNotesButtons(){
             reader.onloadend = () => {
                 const base64data = reader.result as string;
 
+                const voiceMemoNumbers = notes
+                    .map(n => n.title.match(/^Voice Memo (\d+)$/))
+                    .filter(match => match !== null)
+                    .map(match => parseInt(match![1], 10));
+                const nextNumber = voiceMemoNumbers.length > 0 ? Math.max(...voiceMemoNumbers) + 1 : 1;
+                const newTitle = `Voice Memo ${nextNumber}`;
+
                 // Optimistically add note — closes UI instantly
                 addNoteOptimistically({
-                    title: 'Voice Memo 1',
+                    title: newTitle,
                     content: 'Voice Memo audio attached.',
                     audioUrl: base64data,
                     imageUrl: null,
@@ -427,32 +434,32 @@ function TakingNotesButtons(){
                 {/* Header */}
                 <div className="flex justify-between items-start w-full">
                     <div className="flex flex-col flex-1 mr-4">
-                        <span className="text-gray-400 text-[13px] font-medium">{formattedDate}</span>
+                        <span className="text-muted-foreground text-[13px] font-medium">{formattedDate}</span>
                         <input
                             type="text"
                             value={todoListTitle}
                             onChange={(e) => setTodoListTitle(e.target.value)}
                             placeholder="Todo List Title"
-                            className="text-black text-[22px] font-bold mt-0.5 tracking-tight bg-transparent outline-none w-full placeholder:text-gray-300"
+                            className="text-foreground text-[22px] font-bold mt-0.5 tracking-tight bg-transparent outline-none w-full placeholder:text-muted-foreground/50"
                         />
                     </div>
                     {session?.user?.image ? (
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-border">
                             <img src={session.user.image} alt="Profile" className="w-full h-full object-cover" />
                         </div>
                     ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl overflow-hidden border border-gray-200">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xl overflow-hidden border border-border">
                             👩🏻‍⚕️
                         </div>
                     )}
                 </div>
 
                 {/* Calendar Strip */}
-                <div className="flex justify-between items-center w-full px-4 py-3 bg-[#F2F2F2]/50 rounded-[20px]">
+                <div className="flex justify-between items-center w-full px-4 py-3 bg-muted/50 rounded-[20px]">
                     {calendarDays.map((item, idx) => (
                         <div key={idx} className="flex flex-col items-center gap-1.5">
-                            <span className="text-xs font-semibold text-gray-800">{item.day}</span>
-                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${item.isActive ? 'bg-[#FF734D] text-white shadow-sm' : 'text-gray-600'}`}>
+                            <span className="text-xs font-semibold text-foreground">{item.day}</span>
+                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${item.isActive ? 'bg-[#FF734D] text-white shadow-sm' : 'text-muted-foreground'}`}>
                                 <span className="text-[13px] font-medium">{item.date}</span>
                             </div>
                             {item.hasDot ? (
@@ -467,34 +474,34 @@ function TakingNotesButtons(){
                 {/* List of Tasks */}
                 <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
                     {todoTasks.map(task => (
-                        <div key={task.id} className="flex items-center justify-between bg-[#F2F2F2]/50 rounded-[20px] p-4">
+                        <div key={task.id} className="flex items-center justify-between bg-muted/50 rounded-[20px] p-4">
                             <div className="flex items-center gap-4">
                                 <div 
-                                    className={`w-6 h-6 rounded border ${task.done ? 'bg-[#58A942] border-[#58A942]' : 'border-gray-300 bg-white'} flex items-center justify-center cursor-pointer`}
+                                    className={`w-6 h-6 rounded border ${task.done ? 'bg-[#58A942] border-[#58A942]' : 'border-border bg-card'} flex items-center justify-center cursor-pointer`}
                                     onClick={() => setTodoTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: !t.done } : t))}
                                 >
                                     {task.done && <MdDone className="text-white text-sm" />}
                                 </div>
-                                <span className={`text-[14.5px] font-bold tracking-tight leading-none ${task.done ? 'text-gray-400 line-through' : 'text-black'}`}>
+                                <span className={`text-[14.5px] font-bold tracking-tight leading-none ${task.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                                     {task.text}
                                 </span>
                             </div>
                             <BsThreeDots 
-                                className="text-gray-400 text-lg cursor-pointer hover:text-gray-600" 
+                                className="text-muted-foreground text-lg cursor-pointer hover:text-foreground" 
                                 onClick={() => setTodoTasks(prev => prev.filter(t => t.id !== task.id))}
                             />
                         </div>
                     ))}
                     {/* Add new task input */}
                     {isAddingTodo && (
-                        <div className="flex flex-col gap-3 bg-white border border-gray-200 shadow-sm rounded-[24px] p-4 mt-1 transition-all">
+                        <div className="flex flex-col gap-3 bg-card border border-border shadow-sm rounded-[24px] p-4 mt-1 transition-all">
                             <input
                                 autoFocus
                                 type="text"
                                 value={newTodoTitle}
                                 onChange={(e) => setNewTodoTitle(e.target.value)}
                                 placeholder="What needs to be done?"
-                                className="w-full bg-transparent outline-none text-sm font-medium px-1 text-black placeholder:text-gray-400"
+                                className="w-full bg-transparent outline-none text-sm font-medium px-1 text-foreground placeholder:text-muted-foreground"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && newTodoTitle.trim()) {
                                         setTodoTasks(prev => [...prev, { id: Date.now().toString(), text: newTodoTitle.trim(), done: false }]);
@@ -511,7 +518,7 @@ function TakingNotesButtons(){
                                     <img 
                                         src={todoImageUrl} 
                                         alt="Task attachment" 
-                                        className="max-w-full h-auto max-h-24 rounded-lg object-cover border border-gray-200"
+                                        className="max-w-full h-auto max-h-24 rounded-lg object-cover border border-border"
                                     />
                                     <button
                                         onClick={() => setTodoImageUrl(null)}
@@ -523,12 +530,12 @@ function TakingNotesButtons(){
                             )}
                             
                             {/* Divider line */}
-                            <div className="w-full h-px bg-gray-200"></div>
+                            <div className="w-full h-px bg-border"></div>
                             
                             {/* Bottom controls */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-[#0D0D0D]/5 px-4 text-black transition hover:bg-[#0D0D0D]/10">
+                                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-muted px-4 text-foreground transition hover:bg-muted/80">
                                         <svg className="h-5 w-5" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
                                             <title />
                                             <g data-name="Layer 2" id="Layer_2">
@@ -550,7 +557,7 @@ function TakingNotesButtons(){
                                         <button 
                                             type="button" 
                                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                            className="flex h-[40px] cursor-pointer items-center justify-center rounded-[12px] bg-[#0D0D0D]/5 px-4 transition hover:bg-[#0D0D0D]/10"
+                                            className="flex h-[40px] cursor-pointer items-center justify-center rounded-[12px] bg-muted px-4 transition hover:bg-muted/80"
                                         >
                                             <FluentEmoji emoji={selectedEmoji} size={20} />
                                         </button>
@@ -561,7 +568,7 @@ function TakingNotesButtons(){
                                                     className="fixed inset-0 z-40" 
                                                     onClick={() => setShowEmojiPicker(false)}
                                                 ></div>
-                                                <div className="relative z-50 shadow-xl rounded-lg overflow-hidden border border-gray-100">
+                                                <div className="relative z-50 shadow-xl rounded-lg overflow-hidden border border-border">
                                                     <EmojiPicker 
                                                         onEmojiClick={(emojiData) => {
                                                             setSelectedEmoji(emojiData.emoji);
@@ -582,7 +589,7 @@ function TakingNotesButtons(){
                                             setSelectedEmoji('😀');
                                             setTodoImageUrl(null);
                                         }}
-                                        className="h-[40px] rounded-[12px] bg-[#0D0D0D]/5 hover:bg-[#0D0D0D]/10 text-black px-4"
+                                        className="h-[40px] rounded-[12px] bg-muted hover:bg-muted/80 text-foreground px-4"
                                     >
                                         <RxCross2 />
                                     </Button>
@@ -612,7 +619,7 @@ function TakingNotesButtons(){
                     <Button 
                         onClick={handleSaveTodoList}
                         disabled={isSaving}
-                        className="w-full h-12 rounded-[16px] bg-black text-white font-semibold mt-2 shadow-md hover:bg-black/90 transition-all"
+                        className="w-full h-12 rounded-[16px] bg-primary text-primary-foreground font-semibold mt-2 shadow-md hover:bg-primary/90 transition-all"
                     >
                         {isSaving ? <ImSpinner8 className="animate-spin text-xl" /> : 'Save Todo List'}
                     </Button>
@@ -620,25 +627,25 @@ function TakingNotesButtons(){
 
                 {/* Navbar within Todo */}
                 <div className="flex items-center gap-2 md:gap-4 mt-2">
-                    <div className="flex-1 bg-[#F2F2F2]/50 rounded-[32px] p-1.5 md:p-2 flex items-center justify-between">
-                        <div className="bg-white rounded-[24px] px-3 py-2 md:px-4 md:py-3 flex items-center gap-1 md:gap-2 shadow-sm">
-                            <Home className="text-[16px] md:text-[18px] text-black flex-shrink-0" />
-                            <span className="text-xs md:text-sm font-bold text-black tracking-tight">Home</span>
+                    <div className="flex-1 bg-muted/50 rounded-[32px] p-1.5 md:p-2 flex items-center justify-between">
+                        <div className="bg-card rounded-[24px] px-3 py-2 md:px-4 md:py-3 flex items-center gap-1 md:gap-2 shadow-sm">
+                            <Home className="text-[16px] md:text-[18px] text-foreground flex-shrink-0" />
+                            <span className="text-xs md:text-sm font-bold text-foreground tracking-tight">Home</span>
                         </div>
                         {/* Other icons */}
                         <div className="flex items-center gap-3 md:gap-6 pr-2 md:pr-6">
                             {/* Categories */}
-                            <Grid className="text-[18px] md:text-[20px] text-black opacity-30 flex-shrink-0" />
+                            <Grid className="text-[18px] md:text-[20px] text-foreground opacity-30 flex-shrink-0" />
                             {/* Document */}
-                            <Document className="text-[18px] md:text-[20px] text-black opacity-30 flex-shrink-0" />
+                            <Document className="text-[18px] md:text-[20px] text-foreground opacity-30 flex-shrink-0" />
                             {/* Calendar */}
-                            <Calendar className="text-[18px] md:text-[20px] text-black opacity-30 flex-shrink-0" />
+                            <Calendar className="text-[18px] md:text-[20px] text-foreground opacity-30 flex-shrink-0" />
                         </div>
                     </div>
                     {/* Floating Action Button */}
                     <button 
                         onClick={() => setIsAddingTodo(true)}
-                        className="w-[46px] h-[46px] md:w-[60px] md:h-[60px] bg-black rounded-full flex-shrink-0 flex items-center justify-center text-white text-2xl md:text-3xl shadow-lg hover:bg-black/90 transition-colors"
+                        className="w-[46px] h-[46px] md:w-[60px] md:h-[60px] bg-primary rounded-full flex-shrink-0 flex items-center justify-center text-primary-foreground text-2xl md:text-3xl shadow-lg hover:bg-primary/90 transition-colors"
                     >
                         +
                     </button>
@@ -840,18 +847,18 @@ function TakingNotesButtons(){
                     type="text"
                     value={noteData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="w-full text-md font-medium outline-none bg-transparent border-none placeholder:text-gray-400 placeholder:font-medium"
+                    className="w-full text-md font-medium outline-none bg-transparent border-none placeholder:text-muted-foreground placeholder:font-medium"
                     placeholder="Note title..."
                 />
                 
                 {/* Divider line */}
-                <div className="w-full h-px bg-gray-200"></div>
+                <div className="w-full h-px bg-border"></div>
                 
                 {/* Content Textarea */}
                 <textarea 
                     value={noteData.content}
                     onChange={(e) => handleInputChange('content', e.target.value)}
-                    className="w-full h-24 outline-none bg-transparent resize-none placeholder:text-gray-400 text-sm" 
+                    className="w-full h-24 outline-none bg-transparent resize-none placeholder:text-muted-foreground text-sm" 
                     placeholder="Write a note..."
                 ></textarea>
                 
@@ -874,7 +881,7 @@ function TakingNotesButtons(){
                 
                 {/* Bottom controls */}
                 <div className="flex items-center justify-between pt-2">
-                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-[#0D0D0D]/5 px-4 text-black transition hover:bg-[#0D0D0D]/10">
+                    <label className="flex h-[40px] cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-muted px-4 text-foreground transition hover:bg-muted/80">
                         <svg className="h-5 w-5" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
                             <title />
                             <g data-name="Layer 2" id="Layer_2">
@@ -895,7 +902,7 @@ function TakingNotesButtons(){
                     <div className="flex items-center gap-2">
                         <Button
                             onClick={handleCancel}
-                            className="h-[40px] rounded-[12px] bg-[#0D0D0D]/5 hover:bg-[#0D0D0D]/10 text-black"
+                            className="h-[40px] rounded-[12px] bg-muted hover:bg-muted/80 text-foreground"
                         >
                             <RxCross2 />
                         </Button>
@@ -921,10 +928,10 @@ function TakingNotesButtons(){
             </div>
         )}
 
-        <div className="bg-background max-w-[360px] w-full h-[64px] rounded-3xl border border-[#EBEBEB]/50 shadow-md p-2 flex items-center justify-between">
+        <div className="bg-background max-w-[360px] w-full h-[64px] rounded-3xl border border-border shadow-md p-2 flex items-center justify-between">
             <Button
                 onClick={toggleTodo}
-                className="h-[48px] rounded-[20px] bg-black/5 text-black hover:bg-black/10"
+                className="h-[48px] rounded-[20px] bg-muted text-foreground hover:bg-muted/80"
             >
                 <LuListTodo />
                 Todos
@@ -932,7 +939,7 @@ function TakingNotesButtons(){
 
             <Button
                 onClick={toggleInputField}
-                className="h-[48px] rounded-[20px] bg-black/5 text-black hover:bg-black/10"
+                className="h-[48px] rounded-[20px] bg-muted text-foreground hover:bg-muted/80"
             >
                 <BiEditAlt />
                 Write

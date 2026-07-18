@@ -40,9 +40,9 @@ function LoginForm(){
           </Link>
          </div>
          <div className="flex items-center gap-2">
-            <div className="w-[162px] h-[1px] bg-black/15"></div>
-            <span className="text-sm text-[#717171]">OR</span>
-            <div className="w-[162px] h-[1px] bg-black/15"></div> 
+            <div className="w-[162px] h-[1px] bg-border"></div>
+            <span className="text-sm text-muted-foreground">OR</span>
+            <div className="w-[162px] h-[1px] bg-border"></div> 
          </div>
 
          <AuthModal />

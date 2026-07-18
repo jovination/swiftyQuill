@@ -45,7 +45,7 @@ function LoginModal() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium"
+          className="w-full h-[48px] rounded-[16px] border-none bg-muted px-6 text-sm font-medium"
           placeholder="Email Address"
         />
         <Input
@@ -53,7 +53,7 @@ function LoginModal() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full h-[48px] rounded-[16px] border-none bg-[#F4F4F4] px-6 text-sm font-medium"
+          className="w-full h-[48px] rounded-[16px] border-none bg-muted px-6 text-sm font-medium"
           placeholder="Password"
         />
         {error && <p className="text-red-500 text-sm">{error}</p>}

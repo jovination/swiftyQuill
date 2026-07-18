@@ -7,5 +7,5 @@ export function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  return <NextThemesProvider storageKey="swiftyquill-theme" {...props}>{children}</NextThemesProvider>
 }
