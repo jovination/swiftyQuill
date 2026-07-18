@@ -84,7 +84,7 @@ export default async function NotesPage({
   }));
 
   return (
-    <div className="max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col items-center">
+    <div className="max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col items-center mb-40">
       <Toaster position="top-right" />
       <Navbar />
       <NotesProvider initialNotes={serializedNotes} initialTags={serializedTags}>

@@ -186,17 +186,6 @@ export default function NotesList({ currentTag }: NotesListProps) {
               </div>
               <audio controls src={note.audioUrl} className="w-full h-0 opacity-80 group-hover:h-10 group-hover:opacity-100 group-hover:mt-1 transition-all duration-300" />
             </div>
-          ) : viewMode === 'grid' ? (
-            <div className="hidden sm:flex mb-4 p-3 flex-col gap-2 invisible pointer-events-none" aria-hidden="true">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center"></div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">Voice Memo attached</span>
-                  <span className="text-xs text-muted-foreground">Audio ready to play</span>
-                </div>
-              </div>
-              <audio controls className="w-full h-0" />
-            </div>
           ) : null}
 
           <div className="flex flex-wrap gap-2">
