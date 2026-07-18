@@ -233,11 +233,12 @@ function TakingNotesButtons(){
     };
 
     const formatDuration = (seconds: number) => {
-        if (!isFinite(seconds) || isNaN(seconds)) return "00:00";
+        if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
         const hrs = Math.floor(seconds / 3600);
         const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
-        return `${hrs > 0 ? hrs.toString().padStart(2, '0') + ':' : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        if (hrs > 0) return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     const extractLeadingEmoji = (text: string): { emoji: string | null; rest: string } => {
@@ -783,8 +784,8 @@ function TakingNotesButtons(){
                 <div className="inputfield bg-modal flex flex-col justify-between w-[360px] md:w-[440px] h-auto min-h-[212px] shadow-[0_4px_5px_rgba(0,0,0,0.04),0_-4px_5px_rgba(0,0,0,0.04),4px_0_5px_rgba(0,0,0,0.04),-4px_0_5px_rgba(0,0,0,0.04)] rounded-[24px] p-5 gap-3 mb-2 relative">
                     {/* Header */}
                     <div className="flex justify-between items-center w-full">
-                        <span className="text-green-400 font-medium text-sm">
-                            {recordingStatus === 'idle' ? 'Voice Memos' : recordingStatus === 'done' ? 'Ready to Transcribe' : 'Recording...'}
+                        <span className={`font-medium text-sm ${recordingStatus === 'recording' ? 'text-[#58A942]' : recordingStatus === 'done' ? 'text-green-400' : recordingStatus === 'paused' ? 'text-[#58A942]' : 'text-foreground'}`}>
+                            {recordingStatus === 'idle' ? 'Voice Memos' : recordingStatus === 'done' ? 'Ready to Transcribe' : recordingStatus === 'paused' ? 'Recording Paused' : 'Recording...'}
                         </span>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setIsExpandedRecorder(false)} className="text-muted-foreground hover:text-foreground transition">
@@ -820,8 +821,8 @@ function TakingNotesButtons(){
 
                     {/* Footer */}
                     <div className="flex justify-between items-center w-full pt-2">
-                        <span className="text-[32px] font-medium tracking-tight">
-                            {recordingStatus === 'done' ? formatDuration(Math.floor((audioElementRef.current?.duration && isFinite(audioElementRef.current.duration) ? audioElementRef.current.duration : recordingDurationRef.current) * (playbackProgress / 100))) : formatDuration(recordingDuration)}
+                        <span className={`text-[32px] font-medium tracking-tight ${recordingStatus === 'done' ? 'text-foreground' : recordingStatus !== 'idle' ? 'text-[#58A942]' : 'text-foreground'}`}>
+                            {recordingStatus === 'done' ? formatDuration(audioElementRef.current?.duration && isFinite(audioElementRef.current.duration) ? audioElementRef.current.duration : recordingDurationRef.current) : formatDuration(recordingDuration)}
                         </span>
                         <div className="flex items-center gap-2">
                             {recordingStatus === 'idle' ? (
@@ -874,7 +875,7 @@ function TakingNotesButtons(){
                         {recordingStatus === 'recording' && <div className="w-2 h-2 rounded-full bg-[#58A942] animate-pulse"></div>}
                         {recordingStatus === 'paused' && <div className="w-2 h-2 rounded-full bg-[#58A942]"></div>}
                         <span className={`text-[15px] font-medium tracking-tight ${recordingStatus !== 'idle' ? 'text-[#58A942]' : 'text-gray-500'}`}>
-                            {recordingStatus === 'idle' ? '0:00' : formatDuration(recordingDuration).replace(/^00:/, '')} 
+                            {recordingStatus === 'idle' ? '0:00' : formatDuration(recordingDuration)} 
                         </span>
                     </div>
 

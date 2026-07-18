@@ -93,7 +93,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
       {filteredNotes.map((note) => (
         <div 
           key={note.id} 
-          className={`group border border-gray-100 dark:border-border rounded-3xl p-5 hover:bg-black/5 dark:hover:bg-muted/50 transition-all duration-300 relative ${
+          className={`group border border-gray-100 dark:border-border rounded-3xl p-5 hover:bg-black/5 dark:hover:bg-muted/50 hover:border-none transition-all duration-300 relative ${
             note.isPending ? 'opacity-70' : ''
           }`}
         >
