@@ -109,6 +109,7 @@ model Note {
   content     String
   imageUrl    String?
   audioUrl    String?
+  color       String?
   isStarred   Boolean      @default(false)
   isShared    Boolean      @default(false)
   createdAt   DateTime     @default(now())

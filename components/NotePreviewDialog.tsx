@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useNotes, type Note } from "./NotesContext"
 import { X, Add, Mic, ArrowUp, Image as ImageIcon, Video, Sparkles, Mic3 } from "reicon-react"
 import { LuExpand, LuShrink } from "react-icons/lu"
@@ -22,6 +22,10 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [color, setColor] = useState<string | null>(null)
+  const [showPalette, setShowPalette] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Recording states
@@ -45,6 +49,8 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
       setTitle(note.title)
       setContent(note.content)
       setAudioUrl(note.audioUrl || null)
+      setImageUrl(note.imageUrl || null)
+      setColor(note.color || null)
       setRecordingStatus('idle')
       setIsExpandedRecorder(false)
       setWaveformHeights([])
@@ -108,8 +114,19 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
     if (recordingStatus !== 'idle') {
       handleDiscard()
     }
-    updateNoteOptimistically(note.id, { title, content, audioUrl })
+    updateNoteOptimistically(note.id, { title, content, audioUrl, imageUrl, color })
     onClose()
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -250,33 +267,49 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[550px] w-full p-6 sm:p-8 rounded-[32px] bg-[#F4F4F5] dark:bg-[#18181A] border border-white/40 dark:border-white/10 shadow-2xl [&>button]:hidden gap-0">
+      <DialogContent className={`max-w-[550px] w-full max-h-[90vh] flex flex-col p-6 sm:p-8 rounded-[32px] ${color ? 'bg-transparent dark:bg-[#18181A] border-transparent' : 'bg-[#F4F4F5] dark:bg-[#18181A] border-white/40 dark:border-white/10'} shadow-2xl [&>button]:hidden gap-0`}>
+        
+        {/* Background Layer for Color */}
+        {color && (
+          <div className="absolute inset-0 rounded-[32px] -z-10 pointer-events-none" style={{ backgroundColor: color }} />
+        )}
+        
+        {/* Accessibility Labels */}
+        <DialogTitle className="sr-only">Note Preview</DialogTitle>
+        <DialogDescription className="sr-only">View and edit your note details</DialogDescription>
         
         {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div className="font-bold text-[28px] sm:text-[32px] text-gray-900 dark:text-gray-100 flex-1">
+        <div className="flex justify-between items-start mb-6 shrink-0">
+          <div className={`font-bold text-[28px] sm:text-[32px] flex-1 ${color ? 'text-gray-900' : 'text-gray-900 dark:text-gray-100'}`}>
             <input 
               value={title} 
               onChange={e => setTitle(e.target.value)} 
-              className="bg-transparent w-full outline-none border-none placeholder-gray-400"
+              className={`bg-transparent w-full outline-none border-none ${color ? 'placeholder-gray-600/60 text-gray-900' : 'placeholder-gray-400'}`}
               placeholder="Note Title"
             />
           </div>
-          <button onClick={onClose} className="p-2 ml-4 -mr-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-gray-700 dark:text-gray-300 shrink-0">
+          <button onClick={onClose} className={`p-2 ml-4 -mr-2 rounded-full transition-colors shrink-0 ${color ? 'hover:bg-black/10 text-gray-800' : 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'}`}>
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex flex-col gap-5 min-h-[250px]">
-          {/* Images/Media Row */}
-          {note.imageUrl && (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 -mx-4 custom-scrollbar min-h-[250px]">
+          <div className="flex flex-col gap-5 pb-4 px-1">
+            {/* Images/Media Row */}
+          {imageUrl && (
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar relative w-max">
               <img 
-                src={note.imageUrl} 
+                src={imageUrl} 
                 alt="Attachment" 
                 className="w-[100px] h-[100px] shrink-0 rounded-[22px] object-cover shadow-sm border border-black/5 dark:border-white/5" 
               />
+              <button 
+                onClick={() => setImageUrl(null)} 
+                className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/40 text-white rounded-full hover:bg-black/60 transition"
+              >
+                <X className="w-3 h-3" />
+              </button>
             </div>
           )}
           
@@ -286,7 +319,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
             value={content}
             onChange={handleTextareaChange}
             placeholder="Write something..."
-            className="w-full text-[20px] sm:text-[22px] leading-snug bg-transparent border-none outline-none resize-none placeholder-gray-400 dark:placeholder-gray-600 text-gray-800 dark:text-gray-100 font-medium"
+            className={`w-full text-[20px] sm:text-[22px] leading-snug bg-transparent border-none outline-none resize-none font-medium ${color ? 'placeholder-gray-600/60 text-gray-900' : 'placeholder-gray-400 dark:placeholder-gray-600 text-gray-800 dark:text-gray-100'}`}
             rows={4}
           />
 
@@ -452,15 +485,15 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
 
           {/* Voice Memo */}
           {audioUrl && recordingStatus === 'idle' && (
-            <div className="mb-4 bg-black/5 dark:bg-white/5 rounded-2xl p-3 flex flex-col gap-3">
+            <div className={`mb-4 rounded-2xl p-3 flex flex-col gap-3 ${color ? 'bg-black/10' : 'bg-black/5 dark:bg-white/5'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white dark:bg-[#2C2C2E] flex items-center justify-center text-gray-700 dark:text-gray-300 shadow-sm">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${color ? 'bg-white/40 text-gray-800' : 'bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300'}`}>
                     <Mic3 className="w-6 h-6" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Voice Memo attached</span>
-                    <span className="text-xs text-gray-500">Audio ready to play</span>
+                    <span className={`text-sm font-medium ${color ? 'text-gray-900' : 'text-gray-800 dark:text-gray-200'}`}>Voice Memo attached</span>
+                    <span className={`text-xs ${color ? 'text-gray-700' : 'text-gray-500'}`}>Audio ready to play</span>
                   </div>
                 </div>
                 <button 
@@ -473,21 +506,44 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
               <audio controls src={audioUrl} className="w-full h-10 opacity-100 transition-all duration-300" />
             </div>
           )}
+          </div>
         </div>
 
         {/* Bottom Toolbar */}
-        <div className="mt-8 flex justify-between items-center bg-white dark:bg-[#242426] p-2 rounded-[28px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
+        <div className="mt-4 sm:mt-8 shrink-0 flex justify-between items-center bg-white dark:bg-[#242426] p-2 rounded-[28px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5">
           <div className="flex gap-2 items-center">
-            <button className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
+            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+
+            <button onClick={() => fileInputRef.current?.click()} className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
               <Add className="w-6 h-6" />
             </button>
-            <button className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
-              <Sparkles className="w-5 h-5" />
-            </button>
+            
+            <div className="relative">
+              <button onClick={() => setShowPalette(!showPalette)} className="w-12 h-12 flex items-center justify-center rounded-[20px] bg-[#F4F4F5] dark:bg-[#18181A] text-gray-600 dark:text-gray-300 hover:brightness-95 transition-all">
+                <Sparkles className="w-5 h-5" />
+              </button>
+              
+              {/* Palette Popover */}
+              {showPalette && (
+                <div className="absolute bottom-[calc(100%+8px)] left-0 bg-white dark:bg-[#2C2C2E] p-2 rounded-2xl shadow-xl border border-black/5 dark:border-white/5 flex gap-2 z-10">
+                  <button onClick={() => { setColor(null); setShowPalette(false) }} className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0">
+                    <span className="block w-full h-[2px] bg-red-500 rotate-45"></span>
+                  </button>
+                  {["#FFCF7C", "#FFA57F", "#BD9DFF", "#00D9FE", "#E7F298"].map(c => (
+                    <button 
+                      key={c} 
+                      onClick={() => { setColor(c); setShowPalette(false) }}
+                      className={`w-8 h-8 rounded-full border border-black/10 transition-transform hover:scale-110 shrink-0 ${color === c ? 'ring-2 ring-offset-2 ring-black dark:ring-offset-[#2C2C2E] dark:ring-white' : ''}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             
             {/* Toggle group */}
             <div className="hidden sm:flex bg-[#F4F4F5] dark:bg-[#18181A] rounded-[22px] p-1.5 h-12 items-center ml-1">
-              <button className="flex items-center gap-2 px-4 h-full bg-white dark:bg-[#2C2C2E] rounded-[16px] shadow-sm text-[15px] font-medium text-gray-800 dark:text-gray-100">
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 h-full bg-white dark:bg-[#2C2C2E] rounded-[16px] shadow-sm text-[15px] font-medium text-gray-800 dark:text-gray-100">
                 <ImageIcon className="w-4 h-4" />
                 Image
               </button>

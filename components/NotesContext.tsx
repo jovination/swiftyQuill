@@ -18,6 +18,7 @@ export interface Note {
   content: string
   audioUrl?: string | null
   imageUrl?: string | null
+  color?: string | null
   updatedAt: string
   createdAt?: string
   isStarred: boolean
@@ -41,8 +42,8 @@ interface NotesContextValue {
   tags: Tag[]
 
   // Notes mutations
-  addNoteOptimistically: (note: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null }) => void
-  updateNoteOptimistically: (noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrl' | 'isStarred' | 'isShared' | 'audioUrl'>>) => void
+  addNoteOptimistically: (note: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null, color?: string | null }) => void
+  updateNoteOptimistically: (noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrl' | 'isStarred' | 'isShared' | 'audioUrl' | 'color'>>) => void
   deleteNoteOptimistically: (noteId: string) => void
   addTagToNoteOptimistically: (noteId: string, tag: { id: string; name: string }) => void
   removeTagFromNoteOptimistically: (noteId: string, tagId: string) => void
@@ -72,7 +73,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
 
   // ── Add Note Optimistically ──────────────────────────────────────────────
 
-  const addNoteOptimistically = useCallback((noteData: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null }) => {
+  const addNoteOptimistically = useCallback((noteData: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null, color?: string | null }) => {
     const tempId = `temp-${Date.now()}`
     const tempNote: Note = {
       id: tempId,
@@ -80,6 +81,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       content: noteData.content,
       audioUrl: noteData.audioUrl || null,
       imageUrl: noteData.imageUrl || null,
+      color: noteData.color || null,
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       isStarred: false,
@@ -100,6 +102,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
         content: noteData.content,
         imageUrl: noteData.imageUrl || null,
         audioUrl: noteData.audioUrl || null,
+        color: noteData.color || null,
       }),
     })
       .then(async (res) => {
@@ -128,7 +131,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
 
   // ── Update Note Optimistically ───────────────────────────────────────────
 
-  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrl' | 'isStarred' | 'isShared' | 'audioUrl'>>) => {
+  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrl' | 'isStarred' | 'isShared' | 'audioUrl' | 'color'>>) => {
     // 1. Snapshot for rollback
     let originalNote: Note | undefined
 

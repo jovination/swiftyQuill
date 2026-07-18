@@ -46,6 +46,7 @@ function TakingNotesButtons(){
     const [selectedEmoji, setSelectedEmoji] = useState('😀');
     const [taskEmoji, setTaskEmoji] = useState<string | null>(null);
     const [todoImageUrl, setTodoImageUrl] = useState<string | null>(null);
+    const [voiceMemoImageUrl, setVoiceMemoImageUrl] = useState<string | null>(null);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const emojiButtonRef = useRef<HTMLButtonElement>(null);
@@ -200,6 +201,7 @@ function TakingNotesButtons(){
         setRecordingDuration(0);
         recordingDurationRef.current = 0;
         setAudioBlob(null);
+        setVoiceMemoImageUrl(null);
         setPlaybackProgress(0);
         setPlaybackStatus('idle');
         setWaveformHeights([]);
@@ -302,7 +304,7 @@ function TakingNotesButtons(){
                     title: newTitle,
                     content: 'Voice Memo audio attached.',
                     audioUrl: base64data,
-                    imageUrl: null,
+                    imageUrl: voiceMemoImageUrl,
                 });
             };
 
@@ -313,6 +315,7 @@ function TakingNotesButtons(){
             setRecordingDuration(0);
             recordingDurationRef.current = 0;
             setAudioBlob(null);
+            setVoiceMemoImageUrl(null);
             setPlaybackProgress(0);
             setPlaybackStatus('idle');
             if (audioElementRef.current) {
@@ -433,6 +436,14 @@ function TakingNotesButtons(){
         if (file) {
             const imageUrl = URL.createObjectURL(file);
             setTodoImageUrl(imageUrl);
+        }
+    };
+
+    const handleVoiceMemoImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setVoiceMemoImageUrl(imageUrl);
         }
     };
 
@@ -819,11 +830,43 @@ function TakingNotesButtons(){
                         </div>
                     </div>
 
+                    {/* Image Preview */}
+                    {voiceMemoImageUrl && (
+                        <div className="relative mt-2">
+                            <img 
+                                src={voiceMemoImageUrl} 
+                                alt="Voice memo attachment" 
+                                className="max-w-full h-auto max-h-32 rounded-lg object-cover border border-border"
+                            />
+                            <button
+                                onClick={() => setVoiceMemoImageUrl(null)}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
+
                     {/* Footer */}
                     <div className="flex justify-between items-center w-full pt-2">
-                        <span className={`text-[32px] font-medium tracking-tight ${recordingStatus === 'done' ? 'text-foreground' : recordingStatus !== 'idle' ? 'text-[#58A942]' : 'text-foreground'}`}>
-                            {recordingStatus === 'done' ? formatDuration(audioElementRef.current?.duration && isFinite(audioElementRef.current.duration) ? audioElementRef.current.duration : recordingDurationRef.current) : formatDuration(recordingDuration)}
-                        </span>
+                        <div className="flex items-center gap-3">
+                            <span className={`text-[32px] font-medium tracking-tight ${recordingStatus === 'done' ? 'text-foreground' : recordingStatus !== 'idle' ? 'text-[#58A942]' : 'text-foreground'}`}>
+                                {recordingStatus === 'done' ? formatDuration(audioElementRef.current?.duration && isFinite(audioElementRef.current.duration) ? audioElementRef.current.duration : recordingDurationRef.current) : formatDuration(recordingDuration)}
+                            </span>
+                            <label className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface text-foreground transition hover:bg-surface/80 shadow-sm ml-2">
+                                <svg className="h-4 w-4" viewBox="0 0 104.9 96.17" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M27.32,76.5A16.37,16.37,0,0,1,11.83,65.34l-.15-.5a16,16,0,0,1-.76-4.74V30.3L.32,65.7a9.93,9.93,0,0,0,7,12l67.59,18.1a10,10,0,0,0,2.52.32A9.75,9.75,0,0,0,86.83,89L90.77,76.5Z"/>
+                                    <path d="M39.34,30.6a8.74,8.74,0,1,0-8.74-8.74A8.75,8.75,0,0,0,39.34,30.6Z"/>
+                                    <path d="M94,0H28.41A10.94,10.94,0,0,0,17.48,10.93V59A10.94,10.94,0,0,0,28.41,69.94H94A10.94,10.94,0,0,0,104.9,59V10.93A10.94,10.94,0,0,0,94,0ZM28.41,8.74H94a2.19,2.19,0,0,1,2.19,2.19V42L82.35,25.85a7.83,7.83,0,0,0-5.86-2.69,7.64,7.64,0,0,0-5.84,2.76L54.42,45.4l-5.29-5.28a7.67,7.67,0,0,0-10.84,0L26.22,52.19V10.93A2.19,2.19,0,0,1,28.41,8.74Z"/>
+                                </svg>
+                                <Input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept="image/*"
+                                    onChange={handleVoiceMemoImageUpload}
+                                />
+                            </label>
+                        </div>
                         <div className="flex items-center gap-2">
                             {recordingStatus === 'idle' ? (
                                 <Button onClick={startRecording} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-6 text-sm flex items-center gap-2 shadow-none font-medium">

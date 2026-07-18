@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
-import { FiSend, FiGrid, FiList } from "react-icons/fi"
-import { Mic3 } from 'reicon-react';
+import { FiSend } from "react-icons/fi"
+import { Mic3, Widget, List3 } from 'reicon-react';
 import { FluentEmoji } from '@lobehub/fluent-emoji';
 import { HiOutlineDotsHorizontal } from "react-icons/hi"
 import { IoCopyOutline } from "react-icons/io5"
@@ -99,13 +99,13 @@ export default function NotesList({ currentTag }: NotesListProps) {
             onClick={() => setViewMode('list')} 
             className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            <FiList className="w-4 h-4" />
+            <List3 className="w-4 h-4" />
           </button>
           <button 
             onClick={() => setViewMode('grid')} 
             className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            <FiGrid className="w-4 h-4" />
+            <Widget className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -114,24 +114,29 @@ export default function NotesList({ currentTag }: NotesListProps) {
         {filteredNotes.map((note) => (
           <div 
             key={note.id} 
-            className={`group border border-gray-100 dark:border-border rounded-3xl p-5 hover:bg-black/5 dark:hover:bg-muted/50 hover:border-none transition-all duration-300 relative flex flex-col ${
-              note.isPending ? 'opacity-70' : ''
-            }`}
+            className={`group border rounded-3xl p-5 transition-all duration-300 relative flex flex-col overflow-hidden z-0 ${
+              note.color 
+                ? 'border-transparent dark:border-transparent hover:brightness-95 dark:hover:brightness-110' 
+                : 'border-gray-100 dark:border-border hover:bg-black/5 dark:hover:bg-muted/50 hover:border-transparent dark:hover:border-transparent'
+            } ${note.isPending ? 'opacity-70' : ''}`}
           >
+          {note.color && (
+            <div className="absolute inset-0 -z-10 pointer-events-none" style={{ backgroundColor: note.color }} />
+          )}
           {note.isPending && (
             <div className="absolute top-3 right-3">
               <ImSpinner8 className="animate-spin text-sm text-gray-400" />
             </div>
           )}
-          <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+          <div className={`flex justify-between items-center text-xs mb-1 ${note.color ? 'text-gray-700' : 'text-muted-foreground'}`}>
             <span suppressHydrationWarning className="text-date">{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
-          <h2 className="font-medium text-md mb-2 truncate">{note.title}</h2>
+          <h2 className={`font-medium text-md mb-2 truncate ${note.color ? 'text-gray-900' : ''}`}>{note.title}</h2>
           
           {note.imageUrl && (
             <div className="mb-4">
-              <img src={note.imageUrl} alt="Note attachment" className="w-full max-h-48 object-cover rounded-2xl border border-gray-100 dark:border-border" />
+              <img src={note.imageUrl} alt="Note attachment" className={`${viewMode === 'list' ? 'w-32 h-32' : 'w-full max-h-48'} object-cover rounded-2xl`} />
             </div>
           )}
 
@@ -143,10 +148,10 @@ export default function NotesList({ currentTag }: NotesListProps) {
                 const { emoji, rest } = extractLeadingEmoji(rawText);
                 return (
                   <div key={idx} className="flex items-center gap-2">
-                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-[#58A942] border-[#58A942]' : 'border-gray-300 dark:border-border bg-white dark:bg-card'}`}>
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-[#58A942] border-[#58A942]' : (note.color ? 'border-gray-500 bg-transparent' : 'border-gray-300 dark:border-border bg-white dark:bg-card')}`}>
                       {isChecked && <span className="text-white text-[8px] font-bold">✓</span>}
                     </div>
-                    <span className={`text-sm truncate ${isChecked ? 'text-gray-400 dark:text-muted-foreground line-through' : 'text-gray-600 dark:text-muted-foreground'}`}>
+                    <span className={`text-sm truncate ${isChecked ? (note.color ? 'text-gray-600 line-through' : 'text-gray-400 dark:text-muted-foreground line-through') : (note.color ? 'text-gray-900' : 'text-gray-600 dark:text-muted-foreground')}`}>
                       {emoji && <span className="mr-1"><FluentEmoji emoji={emoji} size={14} /></span>}
                       {rest || rawText}
                     </span>
@@ -154,14 +159,14 @@ export default function NotesList({ currentTag }: NotesListProps) {
                 );
               })}
               {note.content.split('\n').length > 3 && (
-                <span className="text-xs text-gray-400 dark:text-muted-foreground mt-0.5">+{note.content.split('\n').length - 3} more items...</span>
+                <span className={`text-xs mt-0.5 ${note.color ? 'text-gray-600' : 'text-gray-400 dark:text-muted-foreground'}`}>+{note.content.split('\n').length - 3} more items...</span>
               )}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{note.content}</p>
+            <p className={`text-sm mb-4 line-clamp-3 ${note.color ? 'text-gray-800' : 'text-muted-foreground'}`}>{note.content}</p>
           )}
 
-          {note.audioUrl && (
+          {note.audioUrl ? (
             <div className="mb-4 bg-black/5 dark:bg-muted/50 rounded-2xl p-3 flex flex-col gap-2">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white dark:bg-card flex items-center justify-center text-gray-700 dark:text-muted-foreground shadow-sm">
@@ -174,7 +179,18 @@ export default function NotesList({ currentTag }: NotesListProps) {
               </div>
               <audio controls src={note.audioUrl} className="w-full h-0 opacity-80 group-hover:h-10 group-hover:opacity-100 group-hover:mt-1 transition-all duration-300" />
             </div>
-          )}
+          ) : viewMode === 'grid' ? (
+            <div className="mb-4 p-3 flex flex-col gap-2 invisible pointer-events-none" aria-hidden="true">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center"></div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Voice Memo attached</span>
+                  <span className="text-xs">Audio ready to play</span>
+                </div>
+              </div>
+              <audio controls className="w-full h-0" />
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             {note.tags.map(({ tag }) => (
