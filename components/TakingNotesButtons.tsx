@@ -769,7 +769,7 @@ function TakingNotesButtons(){
                                 {/* Dotted line for remaining space */}
                                 <div className="flex-1 flex justify-between items-center pl-2 opacity-30">
                                     {[...Array(24)].map((_, i) => <div key={`rec-dot-${i}`} className="w-1 h-1 bg-gray-400 rounded-full"></div>)}
-                                </div>
+                                </div>au
                             </div>
                         )}
                     </div>

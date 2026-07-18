@@ -162,8 +162,6 @@ export default function NotesList({ currentTag }: NotesListProps) {
                       <MenubarSubTrigger>Add Tag</MenubarSubTrigger>
                       <MenubarSubContent>
                         {availableTags
-                          .filter(tag => !tag.isDefault || tag.name === 'Starred')
-                          .filter(tag => tag.name !== 'All' && tag.name !== 'Shared')
                           .map((tag) => {
                             const isTagAdded = note.tags.some(({ tag: noteTag }) => noteTag.id === tag.id)
                             return (
