@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 
+export const dynamic = "force-dynamic";
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] bg-background text-foreground overflow-hidden">

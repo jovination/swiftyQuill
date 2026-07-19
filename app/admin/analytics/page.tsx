@@ -132,12 +132,6 @@ export default async function AnalyticsOverviewPage({
           icon={<Activity />}
           description="Platform API usage"
         />
-        <MetricCard
-          title="Avg. Daily Active Users"
-          value={(newUsersInRange > 0 ? Math.floor(totalUsers * 0.15) : 0).toLocaleString()} // Mock calculation for MVP
-          icon={<Activity className="text-blue-500" />}
-          description="Estimated DAU"
-        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
