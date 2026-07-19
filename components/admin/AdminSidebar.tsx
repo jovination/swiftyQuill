@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -43,9 +44,9 @@ export function AdminSidebar() {
   return (
     <div className="flex h-full w-64 flex-col border-r bg-muted/20">
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px]">
-        <Link href="/admin" className="flex items-center gap-2 font-semibold">
-          <Activity className="h-6 w-6" />
-          <span className="">Platform Manager</span>
+        <Link href="/admin" className="flex items-center gap-2 font-bold">
+          <Image src="/logo.svg" alt="Swifty Quill Logo" width={33} height={33} className="rounded-md object-contain dark:invert" />
+          <span className="text-lg">Swifty Quill</span>
         </Link>
       </div>
       <div className="flex-1 overflow-auto py-2">

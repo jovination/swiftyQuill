@@ -30,6 +30,7 @@ model User {
   tags          Tag[]
   auditLogs     AuditLog[]
   affiliate     Affiliate?
+  reports       Report[]
 
   @@index([email])
 }
@@ -268,4 +269,18 @@ model ApiLog {
 
   @@index([route])
   @@index([userId])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  targetType  String   // e.g., "NOTE", "USER", "BUG"
+  targetId    String?  // ID of the reported entity
+  reason      String
+  status      String   @default("PENDING") // PENDING, RESOLVED, DISMISSED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  reporter    User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
 }

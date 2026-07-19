@@ -1,39 +1,81 @@
 import { MetricCard } from "@/components/admin/MetricCard";
 import { UserCheck, CalendarDays, Activity, RefreshCw } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
 export default async function RetentionAnalyticsPage() {
-  // Mock Retention Data
-  const d1Retention = 45;
-  const d7Retention = 28;
-  const d30Retention = 15;
-  const avgSessionLength = "4m 12s";
+  const users = await prisma.user.findMany({
+    select: { id: true, createdAt: true }
+  });
+  
+  const auditLogs = await prisma.auditLog.findMany({
+    where: { action: "LOGIN" },
+    select: { actorId: true, createdAt: true }
+  });
+
+  const userMap = new Map(users.map(u => [u.id, u.createdAt.getTime()]));
+
+  let d1Eligible = 0, d1Retained = 0;
+  let d7Eligible = 0, d7Retained = 0;
+  let d30Eligible = 0, d30Retained = 0;
+
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  for (const [userId, createdAtMs] of userMap.entries()) {
+    const ageMs = now - createdAtMs;
+
+    // Check Day 1 (24-48 hours after signup)
+    if (ageMs > 2 * DAY_MS) {
+      d1Eligible++;
+      const returned = auditLogs.some(l => l.actorId === userId && l.createdAt.getTime() - createdAtMs >= DAY_MS && l.createdAt.getTime() - createdAtMs <= 2 * DAY_MS);
+      if (returned) d1Retained++;
+    }
+
+    // Check Day 7
+    if (ageMs > 8 * DAY_MS) {
+      d7Eligible++;
+      const returned = auditLogs.some(l => l.actorId === userId && l.createdAt.getTime() - createdAtMs >= 7 * DAY_MS && l.createdAt.getTime() - createdAtMs <= 8 * DAY_MS);
+      if (returned) d7Retained++;
+    }
+
+    // Check Day 30
+    if (ageMs > 31 * DAY_MS) {
+      d30Eligible++;
+      const returned = auditLogs.some(l => l.actorId === userId && l.createdAt.getTime() - createdAtMs >= 30 * DAY_MS && l.createdAt.getTime() - createdAtMs <= 31 * DAY_MS);
+      if (returned) d30Retained++;
+    }
+  }
+
+  const d1Retention = d1Eligible > 0 ? ((d1Retained / d1Eligible) * 100).toFixed(1) + "%" : "N/A";
+  const d7Retention = d7Eligible > 0 ? ((d7Retained / d7Eligible) * 100).toFixed(1) + "%" : "N/A";
+  const d30Retention = d30Eligible > 0 ? ((d30Retained / d30Eligible) * 100).toFixed(1) + "%" : "N/A";
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="1-Day Retention"
-          value={`${d1Retention}%`}
+          value={d1Retention}
           icon={<UserCheck className="text-blue-500" />}
-          description="Users returning next day"
+          description={d1Eligible > 0 ? `Based on ${d1Eligible} eligible users` : "Not enough data"}
         />
         <MetricCard
           title="7-Day Retention"
-          value={`${d7Retention}%`}
+          value={d7Retention}
           icon={<CalendarDays className="text-amber-500" />}
-          description="Users returning after week"
+          description={d7Eligible > 0 ? `Based on ${d7Eligible} eligible users` : "Not enough data"}
         />
         <MetricCard
           title="30-Day Retention"
-          value={`${d30Retention}%`}
+          value={d30Retention}
           icon={<RefreshCw className="text-indigo-500" />}
-          description="Users returning after month"
+          description={d30Eligible > 0 ? `Based on ${d30Eligible} eligible users` : "Not enough data"}
         />
         <MetricCard
           title="Avg Session Length"
-          value={avgSessionLength}
+          value="N/A"
           icon={<Activity className="text-emerald-500" />}
-          description="Time spent per visit"
+          description="Session tracking inactive"
         />
       </div>
 

@@ -14,6 +14,8 @@ export default async function AdminAuditLogsPage() {
     action: log.action,
     target: log.target,
     ip: log.ipAddress || "N/A",
+    location: log.location || "N/A",
+    device: log.device || "N/A",
     createdAt: log.createdAt.toLocaleString(),
   }));
 
@@ -22,6 +24,8 @@ export default async function AdminAuditLogsPage() {
     { header: "Actor", accessorKey: "actor" },
     { header: "Action", accessorKey: "action" },
     { header: "Target", accessorKey: "target" },
+    { header: "Location", accessorKey: "location" },
+    { header: "Device", accessorKey: "device" },
     { header: "IP Address", accessorKey: "ip" },
   ];
 

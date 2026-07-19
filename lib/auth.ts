@@ -4,6 +4,8 @@ import GitHub from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
+import { getGeoLocation } from "./geo";
 
 const prisma = new PrismaClient();
 
@@ -120,6 +122,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           user.username = existingUser.username;
         }
       }
+
+      // Geo-Location Tracking
+      try {
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || null;
+        
+        if (ip && user.id) {
+          // Fire and forget, don't await so we don't block login
+          getGeoLocation(ip).then(async (country) => {
+            if (country) {
+              await prisma.auditLog.create({
+                data: {
+                  actorId: user.id as string,
+                  target: "SESSION",
+                  action: "LOGIN",
+                  ipAddress: ip,
+                  location: country,
+                }
+              });
+            }
+          }).catch(err => console.error("Geo track error:", err));
+        }
+      } catch (error) {
+        // Ignored. `headers()` might throw if not in request context
+      }
+
       return true;
     },
   },
