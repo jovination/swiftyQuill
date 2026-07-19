@@ -15,15 +15,21 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
+  roleId        String?
+  status        UserStatus    @default(ACTIVE)
+  storageUsed   BigInt        @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
+  role          Role?         @relation(fields: [roleId], references: [id], onDelete: SetNull)
   accounts      Account[]
   notes         Note[]
   sessions      Session[]
   subscription  Subscription?
   payments      UserPayment[]
   tags          Tag[]
+  auditLogs     AuditLog[]
+  affiliate     Affiliate?
 
   @@index([email])
 }
@@ -112,6 +118,7 @@ model Note {
   color       String?
   isStarred   Boolean      @default(false)
   isShared    Boolean      @default(false)
+  status      NoteStatus   @default(ACTIVE)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -166,4 +173,99 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum NoteStatus {
+  ACTIVE
+  FLAGGED
+  REMOVED
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  target    String
+  action    String
+  oldValue  String?
+  newValue  String?
+  ipAddress String?
+  device    String?
+  location  String?
+  createdAt DateTime @default(now())
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([target])
+  @@index([action])
+}
+
+model Affiliate {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  referralCode   String   @unique
+  commissions    Float    @default(0)
+  pendingPayouts Float    @default(0)
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model ApiLog {
+  id        String   @id @default(cuid())
+  method    String
+  route     String
+  status    Int
+  duration  Int
+  userId    String?
+  ipAddress String?
+  device    String?
+  createdAt DateTime @default(now())
+
+  @@index([route])
+  @@index([userId])
 }

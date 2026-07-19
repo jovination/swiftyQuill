@@ -27,7 +27,14 @@ function LoginModal() {
       if (result?.error) {
         setError(result.error);
       } else {
-        window.location.href = "/notes";
+        // Fetch session to check role
+        const res = await fetch("/api/auth/session");
+        const session = await res.json();
+        if (session?.user?.role === "SUPER_ADMIN") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/notes";
+        }
       }
     } catch (err) {
       setError("An error occurred. Please try again.");

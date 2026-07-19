@@ -24,7 +24,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         try {
           const user = await prisma.user.findUnique({ 
-            where: { email: credentials.email as string } 
+            where: { email: credentials.email as string },
+            include: { role: true }
           });
 
           if (!user || !user.password) {
@@ -45,8 +46,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.email, 
             name: user.username,
             username: user.username,
-            image: user.image
-          };
+            image: user.image,
+            role: user.role?.name
+          } as any;
         } catch (error) {
           console.error("Authorization error:", error);
           return null;
@@ -60,6 +62,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.username = user.username;
+        if ((user as any).role) {
+          token.role = (user as any).role;
+        } else {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: { role: true }
+          });
+          token.role = dbUser?.role?.name;
+        }
       }
       return token;
     },
@@ -68,7 +79,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id;
       }
       if (token.username && typeof token.username === "string") {
-        session.user.username = token.username;
+        (session.user as any).username = token.username;
+      }
+      if (token.role && typeof token.role === "string") {
+        (session.user as any).role = token.role;
       }
       return session;
     },
