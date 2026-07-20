@@ -339,7 +339,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={`max-w-[550px] w-full max-h-[90vh] flex flex-col p-6 sm:p-8 rounded-[32px] ${color ? 'bg-transparent dark:bg-[#18181A] border-transparent' : 'bg-[#F4F4F5] dark:bg-[#18181A] border-white/40 dark:border-white/10'} shadow-2xl [&>button]:hidden gap-0`}>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className={`max-w-[550px] w-full max-h-[90vh] flex flex-col p-6 sm:p-8 rounded-[32px] ${color ? 'bg-transparent dark:bg-[#18181A] border-transparent' : 'bg-[#F4F4F5] dark:bg-[#18181A] border-white/40 dark:border-white/10'} shadow-2xl [&>button]:hidden gap-0`}>
         
         {/* Background Layer for Color */}
         {color && (
