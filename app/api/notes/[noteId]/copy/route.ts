@@ -41,13 +41,16 @@ export async function POST(
             return NextResponse.json({ error: 'Note not found' }, { status: 404 });
         }
 
-        // Create a copy of the note
+        // Create a copy of the note (shares the same R2 files)
         const copiedNote = await prisma.note.create({
             data: {
                 userId: user.id,
                 title: `${originalNote.title} (Copy)`,
                 content: originalNote.content,
                 imageUrls: originalNote.imageUrls,
+                imageKeys: originalNote.imageKeys,
+                audioUrl: originalNote.audioUrl,
+                audioKey: originalNote.audioKey,
                 tags: {
                     create: originalNote.tags.map(({ tag }) => ({
                         tag: {

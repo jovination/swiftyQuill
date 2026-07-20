@@ -25,19 +25,16 @@ export default async function AnalyticsUsersPage({
     })
   ]);
 
-  // Login Methods mapping
   const loginMethodsMap = new Map<string, number>();
   accounts.forEach(acc => {
     loginMethodsMap.set(acc.provider, acc._count.provider);
   });
   
-  // Let's assume remaining users use Email/Password if they don't have an account
   const totalWithAccounts = accounts.reduce((sum, acc) => sum + acc._count.provider, 0);
   const totalUsers = await prisma.user.count();
   const emailUsers = totalUsers - totalWithAccounts;
   if (emailUsers > 0) loginMethodsMap.set("Email", emailUsers);
 
-  // Growth Trend
   const growthData = await prisma.user.findMany({
     where: { createdAt: { gte: start, lte: end } },
     select: { createdAt: true }
@@ -60,16 +57,15 @@ export default async function AnalyticsUsersPage({
     NewUsers: count
   }));
 
-  // Activity logic DAU/WAU/MAU
-  // Since we don't have a login tracking table easily accessible, we mock this for now
-  // In a real app we'd track sessions or login events.
-  const DAU = Math.floor(totalUsers * 0.15);
-  const WAU = Math.floor(totalUsers * 0.45);
-  const MAU = Math.floor(totalUsers * 0.70);
-
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total Users"
+          value={totalUsers.toLocaleString()}
+          icon={<Users />}
+          description="All registered users"
+        />
         <MetricCard
           title="New Users"
           value={newUsers.toLocaleString()}
@@ -77,22 +73,16 @@ export default async function AnalyticsUsersPage({
           description="Joined in selected range"
         />
         <MetricCard
-          title="Daily Active (DAU)"
-          value={DAU.toLocaleString()}
-          icon={<Activity className="text-blue-500" />}
-          description="Avg. daily active users"
-        />
-        <MetricCard
-          title="Monthly Active (MAU)"
-          value={MAU.toLocaleString()}
-          icon={<Users />}
-          description="Avg. monthly active users"
-        />
-        <MetricCard
           title="Banned Users"
           value={bannedUsers.toLocaleString()}
           icon={<UserMinus className="text-red-500" />}
           description="Total suspended/banned"
+        />
+        <MetricCard
+          title="Auth Providers"
+          value={accounts.length.toLocaleString()}
+          icon={<LogIn className="text-blue-500" />}
+          description="Active login methods"
         />
       </div>
 
@@ -105,7 +95,6 @@ export default async function AnalyticsUsersPage({
           yDataKey="NewUsers"
         />
 
-        {/* We can use the same LineChart component for now, but format it to show login methods */}
         <div className="rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-6">
           <h3 className="text-lg font-semibold leading-none tracking-tight flex items-center">
             <LogIn className="w-5 h-5 mr-2" />
@@ -124,24 +113,4 @@ export default async function AnalyticsUsersPage({
       </div>
     </div>
   );
-}
-
-// Simple Activity Icon for the DAU card since we don't import it at the top
-function Activity(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  )
 }

@@ -12,7 +12,7 @@ export default async function AdminSubscriptionsPage() {
     user: sub.user.username || sub.user.email,
     plan: sub.plan,
     status: sub.status,
-    periodEnd: sub.endDate ? sub.endDate.toLocaleDateString() : "N/A",
+    periodEnd: sub.endDate.toLocaleDateString(),
   }));
 
   const columns = [

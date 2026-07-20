@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { LineChartCard } from "@/components/admin/LineChartCard";
 import { getDateRangeFromParam } from "@/lib/admin/analytics";
-import { Network, Users, DollarSign, HandCoins } from "lucide-react";
+import { Network, DollarSign, HandCoins } from "lucide-react";
 
 export default async function AffiliateAnalyticsPage({
   searchParams,
@@ -19,9 +19,6 @@ export default async function AffiliateAnalyticsPage({
   const totalAffiliates = await prisma.affiliate.count();
   const totalCommissions = affiliates.reduce((acc, aff) => acc + aff.commissions, 0);
   const pendingPayouts = affiliates.reduce((acc, aff) => acc + aff.pendingPayouts, 0);
-  
-  // Mock Referrals since we don't have a direct relation from User -> Affiliate Code
-  const totalReferrals = affiliates.length * 12; // Mock average 12 referrals per affiliate
 
   // Growth Time Series
   const dailyAffiliatesMap = new Map<string, number>();
@@ -49,12 +46,6 @@ export default async function AffiliateAnalyticsPage({
           value={totalAffiliates.toLocaleString()}
           icon={<Network className="text-blue-500" />}
           description="Registered partners"
-        />
-        <MetricCard
-          title="Total Referrals"
-          value={totalReferrals.toLocaleString()}
-          icon={<Users className="text-emerald-500" />}
-          description="Estimated users referred"
         />
         <MetricCard
           title="Commissions Earned"

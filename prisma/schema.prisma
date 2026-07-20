@@ -115,7 +115,9 @@ model Note {
   title       String
   content     String
   imageUrls   String[]     @default([])
+  imageKeys   String[]     @default([])
   audioUrl    String?
+  audioKey    String?
   color       String?
   isStarred   Boolean      @default(false)
   isShared    Boolean      @default(false)

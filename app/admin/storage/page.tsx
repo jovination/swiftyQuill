@@ -1,27 +1,26 @@
 import { prisma } from "@/lib/prisma";
 import { DataTable } from "@/components/admin/DataTable";
+import { getUserStorageBytes } from "@/lib/storage";
 
 export default async function AdminStoragePage() {
   const users = await prisma.user.findMany({
-    orderBy: { storageUsed: "desc" },
+    orderBy: { createdAt: "desc" },
     take: 100
   });
 
-  const formattedData = users.map(user => {
-    let storageInMB = Number(user.storageUsed) / (1024 * 1024);
-    if (storageInMB === 0) {
-      // Deterministic mock based on username length so it stays consistent
-      const nameLen = (user.username || user.email).length;
-      storageInMB = (nameLen * 3.42) + 12.5;
-    }
+  const formattedData = await Promise.all(
+    users.map(async (user) => {
+      const storageBytes = await getUserStorageBytes(user.id);
+      const storageInMB = storageBytes / (1024 * 1024);
 
-    return {
-      id: user.id,
-      user: user.username || user.email,
-      storageUsed: storageInMB.toFixed(2) + " MB",
-      updatedAt: user.updatedAt.toLocaleDateString(),
-    };
-  });
+      return {
+        id: user.id,
+        user: user.username || user.email,
+        storageUsed: storageInMB.toFixed(2) + " MB",
+        updatedAt: user.updatedAt.toLocaleDateString(),
+      };
+    })
+  );
 
   const columns = [
     { header: "User", accessorKey: "user" },

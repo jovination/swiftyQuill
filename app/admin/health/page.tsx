@@ -2,17 +2,19 @@ import { prisma } from "@/lib/prisma";
 import { DataTable } from "@/components/admin/DataTable";
 
 export default async function AdminHealthPage() {
-  // Test DB connection
   let dbStatus = "Disconnected";
+  let dbPing = "N/A";
   try {
+    const start = Date.now();
     await prisma.$queryRaw`SELECT 1`;
+    dbPing = `${Date.now() - start}ms`;
     dbStatus = "Connected";
   } catch (e) {
     dbStatus = "Error";
   }
 
   const formattedData = [
-    { id: "1", service: "Database (PostgreSQL)", status: dbStatus, ping: "< 10ms" },
+    { id: "1", service: "Database (PostgreSQL)", status: dbStatus, ping: dbPing },
     { id: "2", service: "Next.js App Server", status: "Connected", ping: "N/A" },
   ];
 

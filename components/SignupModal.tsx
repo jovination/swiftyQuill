@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react"; 
-import { signIn } from "next-auth/react";
+import { Loader2 } from "lucide-react";
 
 function SignupModal() {
   const [email, setEmail] = useState("");
@@ -28,17 +27,7 @@ function SignupModal() {
       const data = await response.json();
 
       if (response.ok) {
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
-
-        if (result?.error) {
-          setError("Registration successful but login failed. Please try logging in.");
-        } else {
-          window.location.href = "/notes";
-        }
+        window.location.href = "/auth/verify-request";
       } else {
         setError(data.message || "Registration failed");
       }

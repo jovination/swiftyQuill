@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { LineChartCard } from "@/components/admin/LineChartCard";
 import { getDateRangeFromParam } from "@/lib/admin/analytics";
-import { Users, FileText, Database, CreditCard, Activity, UploadCloud, Mic, ImageIcon } from "lucide-react";
+import { Users, FileText, Database, CreditCard, Activity } from "lucide-react";
+import { getAllUserStorageBytes } from "@/lib/storage";
 
 export default async function AnalyticsOverviewPage({
   searchParams,
@@ -19,7 +20,6 @@ export default async function AnalyticsOverviewPage({
     totalNotes,
     notesInRange,
     activeSubscriptions,
-    usersWithStorage,
     apiLogsInRange,
   ] = await Promise.all([
     prisma.user.count(),
@@ -27,17 +27,12 @@ export default async function AnalyticsOverviewPage({
     prisma.note.count(),
     prisma.note.count({ where: { createdAt: { gte: start, lte: end } } }),
     prisma.subscription.count({ where: { status: "ACTIVE" } }),
-    prisma.user.findMany({ select: { storageUsed: true } }),
     prisma.apiLog.count({ where: { createdAt: { gte: start, lte: end } } })
   ]);
 
-  const totalStorageBytes = usersWithStorage.reduce((acc, user) => acc + Number(user.storageUsed), 0);
-  let totalStorageMB = (totalStorageBytes / (1024 * 1024)).toFixed(2);
-  
-  // Mock fallback for empty database to avoid 0.00 MB
-  if (totalStorageBytes === 0) {
-    totalStorageMB = "124.50";
-  }
+  const storageMap = await getAllUserStorageBytes();
+  const totalStorageBytes = Array.from(storageMap.values()).reduce((acc, bytes) => acc + bytes, 0);
+  const totalStorageMB = (totalStorageBytes / (1024 * 1024)).toFixed(2);
 
   // Time Series Data for User Growth in Range
   const usersInRangeData = await prisma.user.findMany({

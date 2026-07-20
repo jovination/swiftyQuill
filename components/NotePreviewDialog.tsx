@@ -23,9 +23,13 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioKey, setAudioKey] = useState<string | null>(null)
   const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [imageKeys, setImageKeys] = useState<string[]>([])
   const [color, setColor] = useState<string | null>(null)
   const [showPalette, setShowPalette] = useState(false)
+  const [pendingImages, setPendingImages] = useState<File[]>([])
+  const [pendingAudio, setPendingAudio] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -86,8 +90,12 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
       setTitle(note.title)
       setContent(note.content)
       setAudioUrl(note.audioUrl || null)
+      setAudioKey(note.audioKey || null)
       setImageUrls(note.imageUrls || [])
+      setImageKeys(note.imageKeys || [])
       setColor(note.color || null)
+      setPendingImages([])
+      setPendingAudio(null)
       setRecordingStatus('idle')
       setIsExpandedRecorder(false)
       setWaveformHeights([])
@@ -170,7 +178,17 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
     if (recordingStatus !== 'idle') {
       handleDiscard()
     }
-    updateNoteOptimistically(note.id, { title, content, audioUrl, imageUrls, color })
+    updateNoteOptimistically(note.id, {
+      title,
+      content,
+      audioUrl,
+      audioKey,
+      imageUrls,
+      imageKeys,
+      color,
+      newImages: pendingImages.length > 0 ? pendingImages : undefined,
+      newAudio: pendingAudio || undefined,
+    })
     onClose()
   }
 
@@ -180,13 +198,10 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    files.forEach(file => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImageUrls(prev => [...prev, reader.result as string])
-      }
-      reader.readAsDataURL(file)
-    })
+    if (files.length === 0) return
+    const previewUrls = files.map(f => URL.createObjectURL(f))
+    setPendingImages(prev => [...prev, ...files])
+    setImageUrls(prev => [...prev, ...previewUrls])
   }
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -328,13 +343,12 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
 
   const handleSaveAudioNote = () => {
     const finalBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-    const reader = new FileReader()
-    reader.readAsDataURL(finalBlob)
-    reader.onloadend = () => {
-      const base64data = reader.result as string
-      setAudioUrl(base64data)
-      handleDiscard() // Reset recording UI state
-    }
+    const audioFile = new File([finalBlob], `voice-memo-${Date.now()}.webm`, { type: 'audio/webm' })
+    const previewUrl = URL.createObjectURL(finalBlob)
+    setAudioUrl(previewUrl)
+    setAudioKey(null)
+    setPendingAudio(audioFile)
+    handleDiscard()
   }
 
   return (
@@ -385,7 +399,10 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
                     className="w-[100px] h-[100px] shrink-0 rounded-[22px] object-cover shadow-sm border border-black/5 dark:border-white/5" 
                   />
                   <button 
-                    onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== idx))} 
+                    onClick={() => {
+                      setImageUrls(prev => prev.filter((_, i) => i !== idx))
+                      setImageKeys(prev => prev.filter((_, i) => i !== idx))
+                    }} 
                     className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/40 text-white rounded-full hover:bg-black/60 transition"
                   >
                     <X className="w-3 h-3" />
@@ -655,7 +672,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
                   </div>
                 </div>
                 <button 
-                  onClick={() => setAudioUrl(null)} 
+                  onClick={() => { setAudioUrl(null); setAudioKey(null) }} 
                   className="text-red-500 hover:text-red-600 w-8 h-8 flex items-center justify-center bg-red-50 dark:bg-red-500/10 rounded-full transition-colors"
                 >
                   <RiDeleteBinLine className="text-[18px]" />
