@@ -105,6 +105,14 @@ export default function NotesList({ currentTag }: NotesListProps) {
     });
   }, [notes, currentTag]);
 
+  const gridColumns = useMemo(() => {
+    const cols: [Note[], Note[], Note[]] = [[], [], []];
+    filteredNotes.forEach((note, idx) => {
+      cols[idx % 3].push(note);
+    });
+    return cols;
+  }, [filteredNotes]);
+
   if (filteredNotes.length === 0) {
     return (
       <div className="text-center py-8 mt-4">
@@ -118,35 +126,15 @@ export default function NotesList({ currentTag }: NotesListProps) {
     )
   }
 
-  return (
-    <div className="w-full mt-10 max-w-4xl mx-auto">
-      <div className="hidden sm:flex justify-end mb-4">
-        <div className="flex bg-black/5 dark:bg-muted/50 rounded-lg p-1">
-          <button 
-            onClick={() => setViewMode('list')} 
-            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            <List3 className="w-4 h-4" />
-          </button>
-          <button 
-            onClick={() => setViewMode('grid')} 
-            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            <Widget className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-      
-      <div className={viewMode === 'grid' ? 'columns-1 sm:columns-2 md:columns-3 gap-4 w-full' : 'flex flex-col gap-4'}>
-        {filteredNotes.map((note) => (
-          <div 
-            key={note.id} 
-            className={`break-inside-avoid ${viewMode === 'grid' ? 'mb-4' : ''} group border rounded-[20px] sm:rounded-3xl p-3 sm:p-5 transition-all duration-300 relative flex flex-col overflow-hidden z-0 ${
-              note.color 
-                ? 'border-transparent dark:border-transparent hover:brightness-95 dark:hover:brightness-110' 
-                : 'border-gray-100 dark:border-border hover:bg-black/5 dark:hover:bg-muted/50 hover:border-transparent dark:hover:border-transparent'
-            } ${note.isPending ? 'opacity-70' : ''}`}
-          >
+  const renderNoteCard = (note: Note) => (
+    <div 
+      key={note.id} 
+      className={`w-full group border rounded-[20px] sm:rounded-3xl p-3 sm:p-5 transition-all duration-300 relative flex flex-col overflow-hidden z-0 ${
+        note.color 
+          ? 'border-transparent dark:border-transparent hover:brightness-95 dark:hover:brightness-110' 
+          : 'border-gray-100 dark:border-border hover:bg-black/5 dark:hover:bg-muted/50 hover:border-transparent dark:hover:border-transparent'
+      } ${note.isPending ? 'opacity-70' : ''}`}
+    >
           {note.color && (
             <div className="absolute inset-0 -z-10 pointer-events-none" style={{ backgroundColor: note.color }} />
           )}
@@ -449,8 +437,40 @@ export default function NotesList({ currentTag }: NotesListProps) {
             </div>
           </div>
         </div>
-      ))}
+  );
+
+  return (
+    <div className="w-full mt-10 max-w-4xl mx-auto">
+      <div className="hidden sm:flex justify-end mb-4">
+        <div className="flex bg-black/5 dark:bg-muted/50 rounded-lg p-1">
+          <button 
+            onClick={() => setViewMode('list')} 
+            className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <List3 className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => setViewMode('grid')} 
+            className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Widget className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+      
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-start w-full">
+          {gridColumns.map((colNotes, colIdx) => (
+            <div key={colIdx} className="flex flex-col gap-4 w-full">
+              {colNotes.map((note) => renderNoteCard(note))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 w-full">
+          {filteredNotes.map((note) => renderNoteCard(note))}
+        </div>
+      )}
       
       <NotePreviewDialog 
         note={previewNote} 
@@ -458,5 +478,5 @@ export default function NotesList({ currentTag }: NotesListProps) {
         onClose={() => setPreviewNote(null)} 
       />
     </div>
-  )
+  );
 }
