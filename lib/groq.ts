@@ -30,12 +30,11 @@ export async function transcribeAudioWithGroq(
   }
 
   const formData = new FormData();
-  const fileBlob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType });
-  formData.append("file", fileBlob, fileName);
+  const fileBlob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType || "audio/webm" });
+  formData.append("file", fileBlob, fileName || "audio.webm");
   formData.append("model", "whisper-large-v3");
-  formData.append("response_format", "json");
-  formData.append("prompt", "Clear voice recording of a personal voice memo or meeting note.");
-  formData.append("temperature", "0.0");
+  formData.append("response_format", "verbose_json");
+  formData.append("temperature", "0");
 
   const response = await fetch(`${GROQ_API_URL}/audio/transcriptions`, {
     method: "POST",
@@ -52,11 +51,12 @@ export async function transcribeAudioWithGroq(
   }
 
   const data = await response.json();
-  if (!data.text) {
+  const text = data.text || (Array.isArray(data.segments) ? data.segments.map((s: any) => s.text).join(" ") : "");
+  if (!text || !text.trim()) {
     throw new Error("No transcription text returned from Groq Whisper.");
   }
 
-  return data.text.trim();
+  return text.trim();
 }
 
 /**
