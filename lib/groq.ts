@@ -34,7 +34,8 @@ export async function transcribeAudioWithGroq(
   formData.append("file", fileBlob, fileName || "audio.webm");
   formData.append("model", "whisper-large-v3");
   formData.append("response_format", "verbose_json");
-  formData.append("temperature", "0");
+  formData.append("prompt","Transcribe the audio accurately.");
+  formData.append("temperature", "0.0");
 
   const response = await fetch(`${GROQ_API_URL}/audio/transcriptions`, {
     method: "POST",

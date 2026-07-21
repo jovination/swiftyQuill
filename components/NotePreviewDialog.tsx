@@ -241,15 +241,43 @@ export function NotePreviewDialog({ note: propNote, isOpen, onClose }: NotePrevi
           noiseSuppression: true,
           autoGainControl: true,
           channelCount: 1,
-          sampleRate: 48000,
         },
       })
+
+      // Web Audio API vocal bandpass filter pipeline (80Hz - 8000Hz speech frequency isolation)
+      let recordingStream = rawStream
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+        if (AudioCtx) {
+          const audioCtx = new AudioCtx()
+          const source = audioCtx.createMediaStreamSource(rawStream)
+          
+          // High-pass filter cuts low-frequency rumbles & hums below 80Hz
+          const highPass = audioCtx.createBiquadFilter()
+          highPass.type = 'highpass'
+          highPass.frequency.setValueAtTime(80, audioCtx.currentTime)
+
+          // Low-pass filter cuts high-frequency hiss & clicks above 8000Hz
+          const lowPass = audioCtx.createBiquadFilter()
+          lowPass.type = 'lowpass'
+          lowPass.frequency.setValueAtTime(8000, audioCtx.currentTime)
+
+          const destination = audioCtx.createMediaStreamDestination()
+          source.connect(highPass)
+          highPass.connect(lowPass)
+          lowPass.connect(destination)
+
+          recordingStream = destination.stream
+        }
+      } catch (filterErr) {
+        console.warn("Web Audio filter fallback:", filterErr)
+      }
 
       const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 128000 }
         : undefined
 
-      const mediaRecorder = new MediaRecorder(rawStream, options)
+      const mediaRecorder = new MediaRecorder(recordingStream, options)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
