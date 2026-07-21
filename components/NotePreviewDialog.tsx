@@ -764,7 +764,7 @@ export function NotePreviewDialog({ note: propNote, isOpen, onClose }: NotePrevi
 
           {/* AI Executive Summary placed at bottom */}
           {note?.summary && (
-            <div className={`p-4 rounded-2xl border mt-2 mb-2 ${color ? 'bg-black/10 border-black/10' : 'bg-gradient-to-r from-emerald-500/10 via-green-500/5 to-teal-500/10 border-emerald-500/20'}`}>
+            <div className={`p-4 rounded-2xl border mt-2 mb-5 ${color ? 'bg-black/10 border-black/10' : 'bg-gradient-to-r from-emerald-500/10 via-green-500/5 to-teal-500/10 border-emerald-500/20'}`}>
               <div className="flex items-center justify-between mb-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                 <div className="flex items-center gap-1.5">
                   <LucideSparkles className="w-4 h-4" />
