@@ -228,18 +228,18 @@ export default function NotesList({ currentTag }: NotesListProps) {
 
           {note.audioUrl ? (
             <div className="mb-4 bg-black/5 dark:bg-muted/50 rounded-2xl p-3 flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white dark:bg-card flex items-center justify-center text-gray-700 dark:text-muted-foreground shadow-sm">
-                  <Mic3 className="w-5 h-5" />
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-full bg-white dark:bg-card flex items-center justify-center text-gray-700 dark:text-muted-foreground shadow-sm shrink-0">
+                  <Mic3 className="w-5 h-5 shrink-0" />
                 </div>
-                <div className="flex flex-col min-w-0">
+                <div className="flex flex-col min-w-0 flex-1">
                   <span 
-                    className="text-sm font-medium text-gray-800 dark:text-foreground truncate max-w-[180px] sm:max-w-[220px]"
+                    className="text-sm font-medium text-gray-800 dark:text-foreground truncate block"
                     title={note.title ? `${note.title} attached` : "Audio attached"}
                   >
                     {note.title ? `${note.title} attached` : "Audio attached"}
                   </span>
-                  <span className="text-xs text-muted-foreground">Audio ready to play</span>
+                  <span className="text-xs text-muted-foreground shrink-0">Audio ready to play</span>
                 </div>
               </div>
               <audio controls src={note.audioUrl} className="w-full h-0 opacity-80 group-hover:h-10 group-hover:opacity-100 group-hover:mt-1 transition-all duration-300" />

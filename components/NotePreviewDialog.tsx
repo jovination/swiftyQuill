@@ -683,26 +683,26 @@ export function NotePreviewDialog({ note: propNote, isOpen, onClose }: NotePrevi
           {/* Voice Memo */}
           {audioUrl && recordingStatus === 'idle' && (
             <div className={`mb-4 rounded-2xl p-3 flex flex-col gap-3 ${color ? 'bg-black/10' : 'bg-black/5 dark:bg-white/5'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm ${color ? 'bg-white/40 text-gray-800' : 'bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300'}`}>
-                    <Mic3 className="w-6 h-6" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm shrink-0 ${color ? 'bg-white/40 text-gray-800' : 'bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300'}`}>
+                    <Mic3 className="w-6 h-6 shrink-0" />
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col min-w-0 flex-1">
                     <span 
-                      className={`text-sm font-medium truncate max-w-[200px] sm:max-w-[300px] ${color ? 'text-gray-900' : 'text-gray-800 dark:text-gray-200'}`}
+                      className={`text-sm font-medium truncate block ${color ? 'text-gray-900' : 'text-gray-800 dark:text-gray-200'}`}
                       title={title ? `${title} attached` : "Audio attached"}
                     >
                       {title ? `${title} attached` : "Audio attached"}
                     </span>
-                    <span className={`text-xs ${color ? 'text-gray-700' : 'text-gray-500'}`}>Audio ready to play</span>
+                    <span className={`text-xs shrink-0 ${color ? 'text-gray-700' : 'text-gray-500'}`}>Audio ready to play</span>
                   </div>
                 </div>
                 <button 
                   onClick={() => { setAudioUrl(null); setAudioKey(null) }} 
-                  className="text-red-500 hover:text-red-600 w-8 h-8 flex items-center justify-center bg-red-50 dark:bg-red-500/10 rounded-full transition-colors"
+                  className="text-red-500 hover:text-red-600 w-8 h-8 flex items-center justify-center bg-red-50 dark:bg-red-500/10 rounded-full transition-colors shrink-0"
                 >
-                  <RiDeleteBinLine className="text-[18px]" />
+                  <RiDeleteBinLine className="text-[18px] shrink-0" />
                 </button>
               </div>
               <audio controls src={audioUrl} className="w-full h-10 opacity-100 transition-all duration-300" />
