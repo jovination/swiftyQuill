@@ -18,8 +18,9 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar"
-import { ImSpinner8 } from "react-icons/im"
+import { Spinner } from "@/components/ui/spinner"
 import { RiDeleteBinLine } from "react-icons/ri";
+import { Sparkles, ListCheck } from "lucide-react"
 import { Button } from './ui/button'
 import { useNotes, type Note } from './NotesContext'
 import { NotePreviewDialog } from './NotePreviewDialog'
@@ -35,6 +36,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
     deleteNoteOptimistically,
     addTagToNoteOptimistically,
     removeTagFromNoteOptimistically,
+    toggleActionItemOptimistically,
   } = useNotes()
 
   const [isInputVisible, setIsInputVisible] = useState(false);
@@ -125,7 +127,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
           )}
           {note.isPending && (
             <div className="absolute top-3 right-3">
-              <ImSpinner8 className="animate-spin text-sm text-gray-400" />
+              <Spinner className="text-green-400" />
             </div>
           )}
           <div className={`flex justify-between items-center text-xs mb-1 ${note.color ? 'text-gray-900' : 'text-muted-foreground'}`}>
@@ -133,6 +135,20 @@ export default function NotesList({ currentTag }: NotesListProps) {
             {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
           <h2 className={`font-medium text-md mb-2 truncate ${note.color ? 'text-gray-900' : ''}`}>{note.title}</h2>
+          
+          {(note.audioKey || note.audioUrl) && (!note.transcript && note.content === 'Voice Memo audio attached.') && (
+            <div className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 w-fit">
+              <Spinner className="text-emerald-500 w-3.5 h-3.5" />
+              <div className="flex items-center gap-0.5 h-3">
+                <span className="w-0.5 h-2.5 bg-emerald-500 rounded-full animate-[bounce_1s_infinite_100ms]" />
+                <span className="w-0.5 h-3 bg-emerald-500 rounded-full animate-[bounce_1s_infinite_200ms]" />
+                <span className="w-0.5 h-2 bg-emerald-500 rounded-full animate-[bounce_1s_infinite_300ms]" />
+              </div>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Transcribing voice memo...
+              </span>
+            </div>
+          )}
           
           {note.imageUrls && note.imageUrls.length > 0 && (
             <div className="mb-4 flex gap-2 overflow-x-auto custom-scrollbar pb-2">
@@ -144,6 +160,35 @@ export default function NotesList({ currentTag }: NotesListProps) {
                   className={`${note.imageUrls && note.imageUrls.length > 1 ? 'w-[85%]' : 'w-full'} h-48 ${viewMode === 'list' ? 'sm:w-32 sm:h-32' : 'sm:h-auto sm:max-h-48'} object-cover rounded-2xl shrink-0`}
                 />
               ))}
+            </div>
+          )}
+
+          {/* AI Action Items / Todo Checklist */}
+          {Array.isArray(note.actionItems) && note.actionItems.length > 0 && (
+            <div className={`mb-4 flex flex-col gap-1.5 rounded-2xl p-3 border ${note.color ? 'bg-black/10 border-black/10' : 'bg-black/5 dark:bg-muted/40 border-black/5 dark:border-white/5'}`}>
+              <div className="flex items-center gap-1.5 mb-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                <ListCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Action Items ({note.actionItems.filter((i: any) => i.completed).length}/{note.actionItems.length})</span>
+              </div>
+              {note.actionItems.slice(0, 3).map((item: any) => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleActionItemOptimistically(note.id, item.id, !item.completed);
+                    }}
+                    className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-400 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]'}`}
+                  >
+                    {item.completed && <span className="text-[10px] font-bold">✓</span>}
+                  </button>
+                  <span className={`text-xs truncate ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                    {item.text}
+                  </span>
+                </div>
+              ))}
+              {note.actionItems.length > 3 && (
+                <span className="text-[10px] text-muted-foreground mt-0.5">+{note.actionItems.length - 3} more items</span>
+              )}
             </div>
           )}
 

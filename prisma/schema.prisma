@@ -118,6 +118,11 @@ model Note {
   imageKeys   String[]     @default([])
   audioUrl    String?
   audioKey    String?
+  transcript  String?
+  summary     String?
+  actionItems Json?        @default("[]")
+  keyInsights Json?        @default("[]")
+  language    String?
   color       String?
   isStarred   Boolean      @default(false)
   isShared    Boolean      @default(false)

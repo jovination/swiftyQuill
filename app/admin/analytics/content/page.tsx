@@ -25,8 +25,14 @@ export default async function ContentAnalyticsPage({
     prisma.sharedNote.count({ where: { createdAt: { gte: start, lte: end } } }),
     prisma.tag.count(),
     prisma.note.count({ where: { status: "REMOVED" } }),
-    // Mocking images since it's an array of strings in Note
-    prisma.note.count({ where: { imageUrls: { isEmpty: false } } })
+    prisma.note.count({
+      where: {
+        OR: [
+          { imageUrls: { isEmpty: false } },
+          { imageKeys: { isEmpty: false } }
+        ]
+      }
+    })
   ]);
 
   // Notes Time Series

@@ -10,7 +10,7 @@ import { RxCross2 } from "react-icons/rx"
 import { FaMicrophone, FaPause, FaStop, FaPlay } from "react-icons/fa6"
 import { BsThreeDots } from "react-icons/bs"
 import { RiDeleteBinLine } from "react-icons/ri"
-import { ListTodo } from "lucide-react"
+import { ListTodo, ListCheck, Sparkles as LucideSparkles } from "lucide-react"
 
 interface NotePreviewDialogProps {
   note: Note | null
@@ -19,7 +19,7 @@ interface NotePreviewDialogProps {
 }
 
 export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogProps) {
-  const { updateNoteOptimistically } = useNotes()
+  const { updateNoteOptimistically, toggleActionItemOptimistically } = useNotes()
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -28,6 +28,7 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
   const [imageKeys, setImageKeys] = useState<string[]>([])
   const [color, setColor] = useState<string | null>(null)
   const [showPalette, setShowPalette] = useState(false)
+  const [showTranscript, setShowTranscript] = useState(false)
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [pendingAudio, setPendingAudio] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -233,7 +234,14 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      })
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
@@ -400,8 +408,13 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
                   />
                   <button 
                     onClick={() => {
+                      if (idx < imageKeys.length) {
+                        setImageKeys(prev => prev.filter((_, i) => i !== idx))
+                      } else {
+                        const pendingIndex = idx - imageKeys.length
+                        setPendingImages(prev => prev.filter((_, i) => i !== pendingIndex))
+                      }
                       setImageUrls(prev => prev.filter((_, i) => i !== idx))
-                      setImageKeys(prev => prev.filter((_, i) => i !== idx))
                     }} 
                     className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/40 text-white rounded-full hover:bg-black/60 transition"
                   >
@@ -412,6 +425,8 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
             </div>
           )}
           
+
+
           {/* Text Area */}
           {content.trim().startsWith('- [') ? (
             <div 
@@ -679,6 +694,51 @@ export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogPr
                 </button>
               </div>
               <audio controls src={audioUrl} className="w-full h-10 opacity-100 transition-all duration-300" />
+            </div>
+          )}
+
+          {/* AI Action Items Checklist */}
+          {note?.actionItems && Array.isArray(note.actionItems) && note.actionItems.length > 0 && (
+            <div className={`p-4 rounded-2xl border mb-3 ${color ? 'bg-black/10 border-black/10' : 'bg-surface/80 dark:bg-muted/40 border-black/5 dark:border-white/5'}`}>
+              <div className="flex items-center gap-1.5 mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                <ListCheck className="w-4 h-4 text-emerald-500" />
+                <span>Action Items ({note.actionItems.filter((i: any) => i.completed).length}/{note.actionItems.length})</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {note.actionItems.map((item: any) => (
+                  <div key={item.id} className="flex items-start gap-2.5">
+                    <button
+                      onClick={() => toggleActionItemOptimistically(note.id, item.id, !item.completed)}
+                      className={`w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-400 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]'}`}
+                    >
+                      {item.completed && <span className="text-[10px] font-bold">✓</span>}
+                    </button>
+                    <span className={`text-sm ${item.completed ? 'line-through text-muted-foreground' : (color ? 'text-gray-900' : 'text-gray-800 dark:text-gray-200')}`}>
+                      {item.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI Executive Summary placed at bottom */}
+          {note?.summary && (
+            <div className={`p-4 rounded-2xl border mt-2 mb-2 ${color ? 'bg-black/10 border-black/10' : 'bg-gradient-to-r from-emerald-500/10 via-green-500/5 to-teal-500/10 border-emerald-500/20'}`}>
+              <div className="flex items-center justify-between mb-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                <div className="flex items-center gap-1.5">
+                  <LucideSparkles className="w-4 h-4" />
+                  <span>AI Executive Summary</span>
+                </div>
+                {note.language && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    {note.language}
+                  </span>
+                )}
+              </div>
+              <p className={`text-sm leading-relaxed ${color ? 'text-gray-900 font-medium' : 'text-gray-800 dark:text-gray-200'}`}>
+                {note.summary}
+              </p>
             </div>
           )}
           </div>

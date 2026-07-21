@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadToR2 } from "@/lib/r2";
 import { notesToResponse } from "@/lib/note-response";
+import { processAudioNoteInBackground } from "@/lib/audio-processor";
 
 // GET all notes for the authenticated user
 export async function GET() {
@@ -93,11 +94,12 @@ export async function POST(req: Request) {
     // Upload new audio file to R2
     const audioFile = formData.get("audio") as File | null;
     let audioKey = existingAudioKey;
+    let audioBuffer: Buffer | undefined;
     if (audioFile && audioFile.size > 0) {
       const ext = audioFile.name.split(".").pop() || "webm";
       audioKey = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const buffer = Buffer.from(await audioFile.arrayBuffer());
-      await uploadToR2(audioKey, buffer, audioFile.type);
+      audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+      await uploadToR2(audioKey, audioBuffer, audioFile.type);
     }
 
     const allImageKeys = [...existingImageKeys, ...newImageKeys];
@@ -126,6 +128,13 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Trigger Groq voice transcription & AI structuring in background
+    if (audioKey && audioFile && audioFile.size > 0) {
+      processAudioNoteInBackground(note.id, audioKey, user.id, audioBuffer).catch((err) =>
+        console.error("Background audio processing failed:", err)
+      );
+    }
 
     const response = await notesToResponse([note]);
     return NextResponse.json(response[0], { status: 201 });

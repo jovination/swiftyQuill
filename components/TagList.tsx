@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { RiDeleteBinLine } from "react-icons/ri"
 import { useNotes, type Tag } from './NotesContext'
 
@@ -24,6 +24,7 @@ export default function TagList({ currentTag }: TagListProps) {
   const { tags, deleteTagOptimistically } = useNotes()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [tagToDelete, setTagToDelete] = useState<Tag | null>(null)
+  const [showAll, setShowAll] = useState(false)
 
   const handleDeleteTag = (tagId: string) => {
     deleteTagOptimistically(tagId)
@@ -36,16 +37,36 @@ export default function TagList({ currentTag }: TagListProps) {
     setDeleteDialogOpen(true)
   }
 
+  // Display top 5 tags by default, keeping active tag visible
+  const visibleTags = useMemo(() => {
+    if (showAll || tags.length <= 5) return tags;
+
+    const top5 = tags.slice(0, 5);
+    const isCurrentInTop5 = top5.some(t => t.name === currentTag || (currentTag === 'All' && t.name === 'All'));
+
+    if (isCurrentInTop5) {
+      return top5;
+    }
+
+    const activeTagObj = tags.find(t => t.name === currentTag);
+    if (activeTagObj) {
+      return [...tags.slice(0, 4), activeTagObj];
+    }
+
+    return top5;
+  }, [tags, currentTag, showAll]);
+
   return (
     <>
-      <div className="max-w-4xl w-full mx-auto mt-4 flex items-center  gap-3">
-        {tags.map((tag) => (
+      <div className="max-w-4xl w-full mx-auto mt-4 flex flex-wrap items-center gap-2">
+        {visibleTags.map((tag) => (
           <Link
             key={tag.id}
-            href={`/notes${tag.name === 'All' ? '' : `?tag=${tag.name}`}`}
-            className={`px-3 py-2 text-sm rounded-full transition-all duration-200 ${
+            href={`/notes${tag.name === 'All' ? '' : `?tag=${encodeURIComponent(tag.name)}`}`}
+            title={tag.name}
+            className={`px-3.5 py-1.5 text-sm rounded-full transition-all duration-200 inline-flex items-center max-w-[140px] ${
               (!currentTag || currentTag === 'All' ? tag.name === 'All' : currentTag === tag.name)
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-primary text-primary-foreground font-medium'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             } ${tag.isPending ? 'opacity-60' : ''}`}
             onContextMenu={(e) => {
@@ -68,9 +89,30 @@ export default function TagList({ currentTag }: TagListProps) {
               }
             }}
           >
-            {tag.name}
+            <span className="truncate">{tag.name}</span>
           </Link>
         ))}
+
+        {!showAll && tags.length > 5 && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="bg-muted w-9 h-9 rounded-full hover:bg-muted/80 text-foreground text-xs font-semibold flex items-center justify-center shrink-0 transition-all"
+            title="Show all tags"
+          >
+            +{tags.length - 5}
+          </button>
+        )}
+
+        {showAll && tags.length > 5 && (
+          <button
+            onClick={() => setShowAll(false)}
+            className="bg-muted px-3 h-9 rounded-full hover:bg-muted/80 text-foreground text-xs font-semibold flex items-center justify-center shrink-0 transition-all"
+            title="Show less"
+          >
+            Less
+          </button>
+        )}
+
         <TagDialog />
       </div>
 

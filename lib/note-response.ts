@@ -1,28 +1,28 @@
 import { getPresignedUrl, getPresignedUrls } from "./r2";
 
-/** Raw note shape from Prisma (has keys) */
-interface RawNote {
-  imageKeys?: string[];
-  audioKey?: string | null;
-  imageUrls?: string[];
-  audioUrl?: string | null;
-  [k: string]: unknown;
-}
-
-/** Note shape returned to the frontend (has presigned URLs or legacy URLs) */
-export interface NoteResponse extends Omit<RawNote, "imageKeys" | "audioKey"> {
+/** Base note response interface */
+export interface NoteResponse {
   imageUrls: string[];
   audioUrl: string | null;
+  imageKeys: string[];
+  audioKey: string | null;
+  transcript?: string | null;
+  summary?: string | null;
+  actionItems?: any;
+  keyInsights?: any;
+  language?: string | null;
 }
 
-export async function noteToResponse(note: RawNote): Promise<NoteResponse> {
+export async function noteToResponse<T extends Record<string, any>>(note: T): Promise<T & NoteResponse> {
   let imageUrls: string[] = Array.isArray(note.imageUrls) ? note.imageUrls : [];
   let audioUrl: string | null = typeof note.audioUrl === "string" ? note.audioUrl : null;
+  const imageKeys: string[] = Array.isArray(note.imageKeys) ? note.imageKeys : [];
+  const audioKey: string | null = typeof note.audioKey === "string" ? note.audioKey : null;
 
   // 1. Resolve image URLs: prefer R2 presigned URLs if imageKeys are present
-  if (Array.isArray(note.imageKeys) && note.imageKeys.length > 0) {
+  if (imageKeys.length > 0) {
     try {
-      const presigned = await getPresignedUrls(note.imageKeys);
+      const presigned = await getPresignedUrls(imageKeys);
       if (presigned.length > 0) {
         imageUrls = presigned;
       }
@@ -32,9 +32,9 @@ export async function noteToResponse(note: RawNote): Promise<NoteResponse> {
   }
 
   // 2. Resolve audio URL: prefer R2 presigned URL if audioKey is present
-  if (note.audioKey) {
+  if (audioKey) {
     try {
-      const presignedAudio = await getPresignedUrl(note.audioKey);
+      const presignedAudio = await getPresignedUrl(audioKey);
       if (presignedAudio) {
         audioUrl = presignedAudio;
       }
@@ -43,12 +43,17 @@ export async function noteToResponse(note: RawNote): Promise<NoteResponse> {
     }
   }
 
-  const { imageKeys: _ik, audioKey: _ak, ...rest } = note;
-  return { ...rest, imageUrls, audioUrl };
+  return {
+    ...note,
+    imageUrls,
+    audioUrl,
+    imageKeys,
+    audioKey,
+  };
 }
 
-export async function notesToResponse(
-  notes: RawNote[]
-): Promise<NoteResponse[]> {
+export async function notesToResponse<T extends Record<string, any>>(
+  notes: T[]
+): Promise<(T & NoteResponse)[]> {
   return Promise.all(notes.map(noteToResponse));
 }

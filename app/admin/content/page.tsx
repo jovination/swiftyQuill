@@ -14,7 +14,7 @@ export default async function AdminContentPage() {
     status: note.status,
     isShared: note.isShared ? "Yes" : "No",
     isStarred: note.isStarred ? "Yes" : "No",
-    media: note.imageUrls.length > 0 || note.audioUrl ? "Yes" : "No",
+    media: (note.imageUrls && note.imageUrls.length > 0) || (note.imageKeys && note.imageKeys.length > 0) || note.audioUrl || note.audioKey ? "Yes" : "No",
     createdAt: note.createdAt.toLocaleDateString(),
   }));
 

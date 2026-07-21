@@ -17,6 +17,7 @@ import { RiMic2AiFill } from "react-icons/ri";
 import { toast } from "sonner";
 import { FluentEmoji } from '@lobehub/fluent-emoji';
 import EmojiPicker from 'emoji-picker-react';
+import { Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useNotes } from './NotesContext';
 
@@ -27,7 +28,7 @@ interface NoteData {
 }
 
 function TakingNotesButtons(){
-    const { notes, addNoteOptimistically } = useNotes();
+    const { notes, addNoteOptimistically, setNotes } = useNotes();
     const { data: session } = useSession();
     const [isInputVisible, setIsInputVisible] = useState(false);
     const [isTranscribeVisible, setIsTranscribeVisible] = useState(false);
@@ -40,6 +41,8 @@ function TakingNotesButtons(){
         imageUrls: []
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const [transcribeStep, setTranscribeStep] = useState<string | null>(null);
     const [pendingImages, setPendingImages] = useState<File[]>([]);
     const [todoListTitle, setTodoListTitle] = useState('');
     const [todoTasks, setTodoTasks] = useState<{id: string, text: string, done: boolean}[]>([]);
@@ -122,7 +125,14 @@ function TakingNotesButtons(){
 
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    channelCount: 1,
+                },
+            });
             const mediaRecorder = new MediaRecorder(stream);
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
@@ -305,6 +315,7 @@ function TakingNotesButtons(){
                 newImages: voiceMemoImageFile ? [voiceMemoImageFile] : undefined,
                 newAudio: audioFile,
             });
+            toast.success('Voice memo saved!');
 
             setIsTranscribeVisible(false);
             setRecordingStatus('idle');
@@ -322,6 +333,62 @@ function TakingNotesButtons(){
         } catch (error) {
             console.error(error);
             toast.error('Error saving voice memo.');
+        }
+    };
+
+    const handleTranscribeAudioNote = async () => {
+        try {
+            const finalBlob = audioBlob;
+            if (!finalBlob) {
+                toast.error("No audio recorded.");
+                return;
+            }
+
+            setIsTranscribing(true);
+            setTranscribeStep("Uploading...");
+
+            const audioFile = new File([finalBlob], `voice-memo-${Date.now()}.webm`, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('file', audioFile);
+
+            setTranscribeStep("Transcribing...");
+
+            const res = await fetch('/api/notes/transcribe', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Failed to transcribe audio note.');
+            }
+
+            const newNote = await res.json();
+            
+            // Add transcribed note to client state
+            setNotes(prev => [newNote, ...prev]);
+            toast.success("Voice note transcribed with Groq AI!");
+
+            // Reset recorder UI
+            setIsTranscribeVisible(false);
+            setRecordingStatus('idle');
+            setWaveformHeights([]);
+            setRecordingDuration(0);
+            recordingDurationRef.current = 0;
+            setAudioBlob(null);
+            setVoiceMemoImageUrl(null);
+            setVoiceMemoImageFile(null);
+            setPlaybackProgress(0);
+            setPlaybackStatus('idle');
+            if (audioElementRef.current) {
+                audioElementRef.current = null;
+            }
+        } catch (error) {
+            console.error("Transcribe error:", error);
+            toast.error(error instanceof Error ? error.message : "Error transcribing voice note.");
+        } finally {
+            setIsTranscribing(false);
+            setTranscribeStep(null);
         }
     };
 
@@ -788,7 +855,7 @@ function TakingNotesButtons(){
                     {/* Header */}
                     <div className="flex justify-between items-center w-full">
                         <span className={`font-medium text-sm ${recordingStatus === 'recording' ? 'text-[#58A942]' : recordingStatus === 'done' ? 'text-green-400' : recordingStatus === 'paused' ? 'text-[#58A942]' : 'text-foreground'}`}>
-                            {recordingStatus === 'idle' ? 'Voice Memos' : recordingStatus === 'done' ? 'Ready to Transcribe' : recordingStatus === 'paused' ? 'Recording Paused' : 'Recording...'}
+                            {recordingStatus === 'idle' ? 'Voice Memos' : recordingStatus === 'done' ? 'Voice Memo Ready' : recordingStatus === 'paused' ? 'Recording Paused' : 'Recording...'}
                         </span>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setIsExpandedRecorder(false)} className="text-muted-foreground hover:text-foreground transition">
@@ -867,16 +934,20 @@ function TakingNotesButtons(){
                                 </Button>
                             ) : recordingStatus === 'done' ? (
                                 <>
-                                    <Button onClick={handleDiscard} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <Button onClick={handleDiscard} disabled={isSaving || isTranscribing} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-3 text-xs flex items-center gap-1.5 shadow-none font-medium">
                                         <RxCross2 className="text-[14px]" />
                                         Discard
                                     </Button>
-                                    <Button onClick={togglePlayback} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-4 text-sm flex items-center gap-2 shadow-none font-medium">
+                                    <Button onClick={togglePlayback} disabled={isSaving || isTranscribing} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-3 text-xs flex items-center gap-1.5 shadow-none font-medium">
                                         {playbackStatus === 'playing' ? <FaPause className="text-[12px]" /> : <FaPlay className="text-[12px] ml-0.5" />}
                                     </Button>
-                                    <Button onClick={handleSaveAudioNote} disabled={isSaving} className="h-[40px] rounded-full bg-green-500 hover:bg-green-600 text-white px-6 text-sm flex items-center gap-2 shadow-none font-medium disabled:opacity-50">
-                                        {isSaving ? <ImSpinner8 className="animate-spin text-sm mr-1" /> : <MdDone className="text-[14px] mr-1" />}
-                                        Save
+                                    <Button onClick={handleSaveAudioNote} disabled={isSaving || isTranscribing} className="h-[40px] rounded-full bg-surface hover:bg-surface/80 text-foreground px-3 text-xs flex items-center gap-1.5 shadow-none font-medium disabled:opacity-50">
+                                        {isSaving ? <ImSpinner8 className="animate-spin text-xs" /> : <MdDone className="text-[14px]" />}
+                                        Save Raw
+                                    </Button>
+                                    <Button onClick={handleTranscribeAudioNote} disabled={isSaving || isTranscribing} className="h-[40px] rounded-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-4 text-xs flex items-center gap-1.5 shadow-sm font-medium disabled:opacity-50">
+                                        {isTranscribing ? <ImSpinner8 className="animate-spin text-xs" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                        {isTranscribing ? (transcribeStep || 'Processing...') : '✨ Voice Memo'}
                                     </Button>
                                 </>
                             ) : (
@@ -1115,7 +1186,7 @@ function TakingNotesButtons(){
                 className="h-[48px] rounded-[20px]"
             >
                <RiMic2AiFill className="text-4xl text-green-400" />
-                Transcribe
+                Voice Memo
             </Button>
         </div>
     </div>

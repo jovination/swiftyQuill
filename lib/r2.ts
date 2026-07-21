@@ -36,6 +36,20 @@ export async function uploadToR2(
   return key;
 }
 
+export async function downloadFromR2(key: string): Promise<Buffer> {
+  const res = await r2.send(
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+    })
+  );
+  if (!res.Body) {
+    throw new Error(`File body for key "${key}" is empty.`);
+  }
+  const byteArray = await res.Body.transformToByteArray();
+  return Buffer.from(byteArray);
+}
+
 export async function getPresignedUrl(key: string): Promise<string> {
   return getSignedUrl(
     r2,

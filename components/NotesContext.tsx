@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -12,6 +12,12 @@ export interface NoteTag {
   }
 }
 
+export interface ActionItem {
+  id: string
+  text: string
+  completed: boolean
+}
+
 export interface Note {
   id: string
   title: string
@@ -20,6 +26,11 @@ export interface Note {
   audioKey?: string | null
   imageUrls?: string[]
   imageKeys?: string[]
+  transcript?: string | null
+  summary?: string | null
+  actionItems?: any
+  keyInsights?: any
+  language?: string | null
   color?: string | null
   updatedAt: string
   createdAt?: string
@@ -59,6 +70,7 @@ interface NotesContextValue {
       newAudio?: File | null
     }
   ) => void
+  toggleActionItemOptimistically: (noteId: string, itemId: string, completed: boolean) => void
   deleteNoteOptimistically: (noteId: string) => void
   addTagToNoteOptimistically: (noteId: string, tag: { id: string; name: string }) => void
   removeTagFromNoteOptimistically: (noteId: string, tagId: string) => void
@@ -85,6 +97,44 @@ interface NotesProviderProps {
 export function NotesProvider({ initialNotes, initialTags, children }: NotesProviderProps) {
   const [notes, setNotes] = useState<Note[]>(initialNotes)
   const [tags, setTags] = useState<Tag[]>(initialTags)
+
+  // ── Automatic Real-Time Polling for Pending AI Transcriptions ─────────────
+  useEffect(() => {
+    const hasPendingAudio = notes.some(
+      n => (n.audioUrl || n.audioKey) && (!n.transcript || n.content === 'Voice Memo audio attached.' || n.title.startsWith('Voice Memo '))
+    );
+
+    if (!hasPendingAudio) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/notes');
+        if (!res.ok) return;
+        const latestNotes: Note[] = await res.json();
+
+        setNotes(prev => {
+          let updatedAny = false;
+          const updated = prev.map(currentNote => {
+            const fresh = latestNotes.find(ln => ln.id === currentNote.id);
+            if (fresh && fresh.transcript && (!currentNote.transcript || currentNote.content === 'Voice Memo audio attached.')) {
+              updatedAny = true;
+              return { ...currentNote, ...fresh, isPending: false };
+            }
+            return currentNote;
+          });
+
+          if (updatedAny) {
+            toast.success('✨ AI Voice Memo ready!');
+          }
+          return updated;
+        });
+      } catch (err) {
+        console.error('Failed to poll background notes update:', err);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [notes]);
 
   // ── Add Note Optimistically ──────────────────────────────────────────────
 
@@ -401,6 +451,36 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       })
   }, [])
 
+  // ── Toggle Action Item Optimistically ───────────────────────────────────
+
+  const toggleActionItemOptimistically = useCallback((noteId: string, itemId: string, completed: boolean) => {
+    let originalNote: Note | undefined
+
+    setNotes(prev => {
+      originalNote = prev.find(n => n.id === noteId)
+      return prev.map(n => {
+        if (n.id === noteId && Array.isArray(n.actionItems)) {
+          const updatedItems = n.actionItems.map((item: any) =>
+            item.id === itemId ? { ...item, completed } : item
+          )
+          return { ...n, actionItems: updatedItems }
+        }
+        return n
+      })
+    })
+
+    fetch(`/api/notes/${noteId}/action-items`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId, completed }),
+    }).catch(() => {
+      if (originalNote) {
+        setNotes(prev => prev.map(n => n.id === noteId ? originalNote! : n))
+      }
+      toast.error('Failed to update task')
+    })
+  }, [])
+
   // ── Context Value ────────────────────────────────────────────────────────
 
   const value = useMemo<NotesContextValue>(
@@ -409,6 +489,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       tags,
       addNoteOptimistically,
       updateNoteOptimistically,
+      toggleActionItemOptimistically,
       deleteNoteOptimistically,
       addTagToNoteOptimistically,
       removeTagFromNoteOptimistically,
@@ -422,6 +503,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       tags,
       addNoteOptimistically,
       updateNoteOptimistically,
+      toggleActionItemOptimistically,
       deleteNoteOptimistically,
       addTagToNoteOptimistically,
       removeTagFromNoteOptimistically,

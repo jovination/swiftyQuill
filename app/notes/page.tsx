@@ -12,6 +12,9 @@ import { Suspense } from 'react'
 import NotesList from "@/components/NotesList";
 import { NotesProvider } from "@/components/NotesContext";
 
+import { notesToResponse } from "@/lib/note-response";
+import { processAudioNoteInBackground } from "@/lib/audio-processor";
+
 export default async function NotesPage({
   searchParams,
 }: {
@@ -70,11 +73,24 @@ export default async function NotesPage({
     },
   });
 
+  // Check for any untranscribed audio notes (e.g. "Voice Memo 2") and process in background
+  const pendingAudioNotes = notes.filter(
+    (n) => n.audioKey && (!n.transcript || n.content === "Voice Memo audio attached.")
+  );
+  if (pendingAudioNotes.length > 0) {
+    Promise.all(
+      pendingAudioNotes.map((n) => processAudioNoteInBackground(n.id, n.audioKey!, user.id))
+    ).catch((err) => console.error("Background page auto-transcription failed:", err));
+  }
+
+  // Convert raw notes to include resolved presigned R2 URLs
+  const notesWithPresignedUrls = await notesToResponse(notes);
+
   // Serialize dates for client components
-  const serializedNotes = notes.map(note => ({
+  const serializedNotes = notesWithPresignedUrls.map(note => ({
     ...note,
-    updatedAt: note.updatedAt.toISOString(),
-    createdAt: note.createdAt.toISOString(),
+    updatedAt: (note.updatedAt instanceof Date ? note.updatedAt : new Date(note.updatedAt as string)).toISOString(),
+    createdAt: (note.createdAt instanceof Date ? note.createdAt : new Date(note.createdAt as string)).toISOString(),
   }));
 
   const serializedTags = tags.map(tag => ({
