@@ -232,8 +232,11 @@ export default function NotesList({ currentTag }: NotesListProps) {
                 <div className="w-10 h-10 rounded-full bg-white dark:bg-card flex items-center justify-center text-gray-700 dark:text-muted-foreground shadow-sm">
                   <Mic3 className="w-5 h-5" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-800 dark:text-foreground">
+                <div className="flex flex-col min-w-0">
+                  <span 
+                    className="text-sm font-medium text-gray-800 dark:text-foreground truncate max-w-[180px] sm:max-w-[220px]"
+                    title={note.title ? `${note.title} attached` : "Audio attached"}
+                  >
                     {note.title ? `${note.title} attached` : "Audio attached"}
                   </span>
                   <span className="text-xs text-muted-foreground">Audio ready to play</span>
