@@ -38,11 +38,13 @@ export default function NotesList({ currentTag }: NotesListProps) {
     addTagToNoteOptimistically,
     removeTagFromNoteOptimistically,
     toggleActionItemOptimistically,
+    toggleMarkdownTodoOptimistically,
   } = useNotes()
 
   const [isInputVisible, setIsInputVisible] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
+  const [expandedActionItems, setExpandedActionItems] = useState<Record<string, boolean>>({});
 
   const toggleInputField = () => {
     setIsInputVisible(!isInputVisible);
@@ -69,6 +71,20 @@ export default function NotesList({ currentTag }: NotesListProps) {
       return { emoji: emoji.trimStart() || null, rest: rest.trimStart() };
     }
     return { emoji: null, rest: text };
+  };
+
+  const getActionItemsArray = (raw: any): any[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   };
 
   const filteredNotes = useMemo(() => {
@@ -165,57 +181,176 @@ export default function NotesList({ currentTag }: NotesListProps) {
           )}
 
           {/* AI Action Items / Todo Checklist */}
-          {Array.isArray(note.actionItems) && note.actionItems.length > 0 && (
-            <div className={`mb-4 flex flex-col gap-1.5 rounded-2xl p-3 border ${note.color ? 'bg-black/10 border-black/10' : 'bg-black/5 dark:bg-muted/40 border-black/5 dark:border-white/5'}`}>
-              <div className="flex items-center gap-1.5 mb-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                <ListCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Action Items ({note.actionItems.filter((i: any) => i.completed).length}/{note.actionItems.length})</span>
-              </div>
-              {note.actionItems.slice(0, 3).map((item: any) => (
-                <div key={item.id} className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleActionItemOptimistically(note.id, item.id, !item.completed);
-                    }}
-                    className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-400 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]'}`}
-                  >
-                    {item.completed && <span className="text-[10px] font-bold">✓</span>}
-                  </button>
-                  <span className={`text-xs truncate ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                    {item.text}
-                  </span>
-                </div>
-              ))}
-              {note.actionItems.length > 3 && (
-                <span className="text-[10px] text-muted-foreground mt-0.5">+{note.actionItems.length - 3} more items</span>
-              )}
-            </div>
-          )}
+          {(() => {
+            const actionItems = getActionItemsArray(note.actionItems);
+            if (actionItems.length === 0) return null;
 
-          {note.content.trim().startsWith('- [') ? (
-            <div className={`flex flex-col gap-1.5 mb-4 overflow-hidden rounded-xl p-2 px-3 ${note.color ? 'bg-black/10' : 'bg-black/10 dark:bg-black/10'}`}>
-              {note.content.split('\n').slice(0, 2).map((line, idx) => {
-                const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
-                const rawText = line.replace(/^- \[[ xX]\] /, '');
-                const { emoji, rest } = extractLeadingEmoji(rawText);
-                return (
-                  <div key={idx} className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${isChecked ? 'bg-[#00b505] border-[#00b505]' : (note.color ? 'border-gray-500 bg-transparent' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]')}`}>
-                      {isChecked && <span className="text-white text-[10px] font-bold">✓</span>}
-                    </div>
-                    <span className={`text-sm truncate ${isChecked ? (note.color ? 'text-gray-600/80 line-through' : 'text-gray-400 dark:text-muted-foreground line-through') : (note.color ? 'text-gray-900 font-medium' : 'text-gray-700 font-medium dark:text-gray-200 dark:font-light')}`}>
-                      {emoji && <span className="mr-1.5"><FluentEmoji emoji={emoji} size={14} /></span>}
-                      {rest || rawText}
+            const isExpanded = Boolean(expandedActionItems[note.id]);
+            const initialItems = actionItems.slice(0, 2);
+            const extraItems = actionItems.slice(2);
+            const remainingCount = actionItems.length - 2;
+
+            return (
+              <div className={`mb-4 flex flex-col gap-1.5 rounded-2xl p-3 border transition-all duration-300 ease-in-out ${note.color ? 'bg-black/10 border-black/10' : 'bg-black/5 dark:bg-muted/40 border-black/5 dark:border-white/5'}`}>
+                <div className="flex items-center justify-between mb-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center gap-1.5">
+                    <ListCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Action Items ({actionItems.filter((i: any) => i.completed).length}/{actionItems.length})</span>
+                  </div>
+                  {actionItems.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setExpandedActionItems(prev => ({ ...prev, [note.id]: !prev[note.id] }));
+                      }}
+                      className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline transition-all px-1 py-0.5"
+                    >
+                      {isExpanded ? "Collapse" : `+${remainingCount} more`}
+                    </button>
+                  )}
+                </div>
+
+                {initialItems.map((item: any, idx: number) => (
+                  <div key={item.id || `item-${idx}`} className="flex items-center gap-2 group/item">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleActionItemOptimistically(note.id, item.id, !item.completed);
+                      }}
+                      className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer ${item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-400 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]'}`}
+                    >
+                      {item.completed && <span className="text-[10px] font-bold">✓</span>}
+                    </button>
+                    <span 
+                      className={`text-xs truncate cursor-pointer select-none ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleActionItemOptimistically(note.id, item.id, !item.completed);
+                      }}
+                    >
+                      {item.text}
                     </span>
                   </div>
-                );
-              })}
-              {note.content.split('\n').length > 2 && (
-                <span className={`text-[11px] font-medium mt-0.5 ${note.color ? 'text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>+{note.content.split('\n').length - 2} more items</span>
-              )}
-            </div>
-          ) : (
+                ))}
+
+                {extraItems.length > 0 && (
+                  <div className={`flex flex-col gap-1.5 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 mt-0.5' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`}>
+                    {extraItems.map((item: any, idx: number) => (
+                      <div key={item.id || `extra-${idx}`} className="flex items-center gap-2 group/item">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            toggleActionItemOptimistically(note.id, item.id, !item.completed);
+                          }}
+                          className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer ${item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-400 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]'}`}
+                        >
+                          {item.completed && <span className="text-[10px] font-bold">✓</span>}
+                        </button>
+                        <span 
+                          className={`text-xs truncate cursor-pointer select-none ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            toggleActionItemOptimistically(note.id, item.id, !item.completed);
+                          }}
+                        >
+                          {item.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {note.content.trim().startsWith('- [') ? (() => {
+            const lines = note.content.split('\n').filter(l => l.trim().length > 0);
+            const isExpanded = Boolean(expandedActionItems[note.id]);
+            const initialLines = lines.slice(0, 2);
+            const extraLines = lines.slice(2);
+            const remainingCount = lines.length - 2;
+
+            return (
+              <div className={`flex flex-col gap-1.5 mb-4 overflow-hidden rounded-xl p-2 px-3 transition-all duration-300 ease-in-out ${note.color ? 'bg-black/10' : 'bg-black/10 dark:bg-black/10'}`}>
+                {initialLines.map((line, idx) => {
+                  const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
+                  const rawText = line.replace(/^- \[[ xX]\] /, '');
+                  const { emoji, rest } = extractLeadingEmoji(rawText);
+                  return (
+                    <div 
+                      key={idx} 
+                      className="flex items-center gap-2 cursor-pointer group/item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleMarkdownTodoOptimistically(note.id, idx);
+                      }}
+                    >
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${isChecked ? 'bg-[#00b505] border-[#00b505]' : (note.color ? 'border-gray-500 bg-transparent' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]')}`}>
+                        {isChecked && <span className="text-white text-[10px] font-bold">✓</span>}
+                      </div>
+                      <span className={`text-sm truncate select-none ${isChecked ? (note.color ? 'text-gray-600/80 line-through' : 'text-gray-400 dark:text-muted-foreground line-through') : (note.color ? 'text-gray-900 font-medium' : 'text-gray-700 font-medium dark:text-gray-200 dark:font-light')}`}>
+                        {emoji && <span className="mr-1.5"><FluentEmoji emoji={emoji} size={14} /></span>}
+                        {rest || rawText}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {extraLines.length > 0 && (
+                  <div className={`flex flex-col gap-1.5 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[600px] opacity-100 mt-0.5' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`}>
+                    {extraLines.map((line, idx) => {
+                      const actualIdx = idx + 2;
+                      const isChecked = line.startsWith('- [x]') || line.startsWith('- [X]');
+                      const rawText = line.replace(/^- \[[ xX]\] /, '');
+                      const { emoji, rest } = extractLeadingEmoji(rawText);
+                      return (
+                        <div 
+                          key={actualIdx} 
+                          className="flex items-center gap-2 cursor-pointer group/item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            toggleMarkdownTodoOptimistically(note.id, actualIdx);
+                          }}
+                        >
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${isChecked ? 'bg-[#00b505] border-[#00b505]' : (note.color ? 'border-gray-500 bg-transparent' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2C2C2E]')}`}>
+                            {isChecked && <span className="text-white text-[10px] font-bold">✓</span>}
+                          </div>
+                          <span className={`text-sm truncate select-none ${isChecked ? (note.color ? 'text-gray-600/80 line-through' : 'text-gray-400 dark:text-muted-foreground line-through') : (note.color ? 'text-gray-900 font-medium' : 'text-gray-700 font-medium dark:text-gray-200 dark:font-light')}`}>
+                            {emoji && <span className="mr-1.5"><FluentEmoji emoji={emoji} size={14} /></span>}
+                            {rest || rawText}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {lines.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setExpandedActionItems(prev => ({ ...prev, [note.id]: !prev[note.id] }));
+                    }}
+                    className={`text-[11px] font-medium mt-0.5 text-left hover:underline transition-all ${note.color ? 'text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}
+                  >
+                    {isExpanded ? "Show less" : `+${remainingCount} more items`}
+                  </button>
+                )}
+              </div>
+            );
+          })() : (
             <p className={`text-sm mb-4 line-clamp-2 ${note.color ? 'text-gray-800' : 'text-muted-foreground'}`}>{note.content}</p>
           )}
 

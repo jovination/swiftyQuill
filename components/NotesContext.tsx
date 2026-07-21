@@ -71,6 +71,7 @@ interface NotesContextValue {
     }
   ) => void
   toggleActionItemOptimistically: (noteId: string, itemId: string, completed: boolean) => void
+  toggleMarkdownTodoOptimistically: (noteId: string, lineIndex: number) => void
   deleteNoteOptimistically: (noteId: string) => void
   addTagToNoteOptimistically: (noteId: string, tag: { id: string; name: string }) => void
   removeTagFromNoteOptimistically: (noteId: string, tagId: string) => void
@@ -459,9 +460,18 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
     setNotes(prev => {
       originalNote = prev.find(n => n.id === noteId)
       return prev.map(n => {
-        if (n.id === noteId && Array.isArray(n.actionItems)) {
-          const updatedItems = n.actionItems.map((item: any) =>
-            item.id === itemId ? { ...item, completed } : item
+        if (n.id === noteId) {
+          const rawItems = n.actionItems
+          let itemsArray: any[] = []
+          if (Array.isArray(rawItems)) {
+            itemsArray = rawItems
+          } else if (typeof rawItems === 'string') {
+            try { itemsArray = JSON.parse(rawItems) } catch { itemsArray = [] }
+          }
+          if (!Array.isArray(itemsArray)) itemsArray = []
+
+          const updatedItems = itemsArray.map((item: any) =>
+            (item.id === itemId || String(item.id) === String(itemId)) ? { ...item, completed } : item
           )
           return { ...n, actionItems: updatedItems }
         }
@@ -481,6 +491,56 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
     })
   }, [])
 
+  const toggleMarkdownTodoOptimistically = useCallback((noteId: string, lineIndex: number) => {
+    let originalNote: Note | undefined
+
+    setNotes(prev => {
+      originalNote = prev.find(n => n.id === noteId)
+      return prev.map(n => {
+        if (n.id === noteId) {
+          const lines = n.content.split('\n')
+          if (lines[lineIndex] !== undefined) {
+            const line = lines[lineIndex]
+            if (line.startsWith('- [x]') || line.startsWith('- [X]')) {
+              lines[lineIndex] = line.replace(/^- \[[xX]\] /, '- [ ] ')
+            } else if (line.startsWith('- [ ]')) {
+              lines[lineIndex] = line.replace(/^- \[ \] /, '- [x] ')
+            }
+          }
+          return { ...n, content: lines.join('\n') }
+        }
+        return n
+      })
+    })
+
+    if (originalNote) {
+      const lines = originalNote.content.split('\n')
+      if (lines[lineIndex] !== undefined) {
+        const line = lines[lineIndex]
+        if (line.startsWith('- [x]') || line.startsWith('- [X]')) {
+          lines[lineIndex] = line.replace(/^- \[[xX]\] /, '- [ ] ')
+        } else if (line.startsWith('- [ ]')) {
+          lines[lineIndex] = line.replace(/^- \[ \] /, '- [x] ')
+        }
+      }
+      const updatedContent = lines.join('\n')
+
+      fetch(`/api/notes/${noteId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: originalNote.title,
+          content: updatedContent,
+        }),
+      }).catch(() => {
+        if (originalNote) {
+          setNotes(prev => prev.map(n => n.id === noteId ? originalNote! : n))
+        }
+        toast.error('Failed to update task')
+      })
+    }
+  }, [])
+
   // ── Context Value ────────────────────────────────────────────────────────
 
   const value = useMemo<NotesContextValue>(
@@ -490,6 +550,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       addNoteOptimistically,
       updateNoteOptimistically,
       toggleActionItemOptimistically,
+      toggleMarkdownTodoOptimistically,
       deleteNoteOptimistically,
       addTagToNoteOptimistically,
       removeTagFromNoteOptimistically,
@@ -504,6 +565,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       addNoteOptimistically,
       updateNoteOptimistically,
       toggleActionItemOptimistically,
+      toggleMarkdownTodoOptimistically,
       deleteNoteOptimistically,
       addTagToNoteOptimistically,
       removeTagFromNoteOptimistically,
