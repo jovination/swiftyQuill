@@ -221,14 +221,20 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
     const fd = new FormData()
     const titleToSend = textUpdates.title ?? originalNote?.title ?? ''
     const contentToSend = textUpdates.content ?? originalNote?.content ?? ''
+    const colorToSend = 'color' in textUpdates ? (textUpdates.color ?? '') : (originalNote?.color ?? '')
+    const isStarredToSend = 'isStarred' in textUpdates ? Boolean(textUpdates.isStarred) : Boolean(originalNote?.isStarred)
+    const isPinnedToSend = 'isPinned' in textUpdates ? Boolean(textUpdates.isPinned) : Boolean(originalNote?.isPinned)
+    const isSharedToSend = 'isShared' in textUpdates ? Boolean(textUpdates.isShared) : Boolean(originalNote?.isShared)
+    const audioKeyToSend = 'audioKey' in textUpdates ? (textUpdates.audioKey ?? '') : (originalNote?.audioKey ?? '')
+
     fd.append('title', titleToSend)
     fd.append('content', contentToSend)
-    fd.append('color', textUpdates.color ?? originalNote?.color ?? '')
-    fd.append('isStarred', String(textUpdates.isStarred ?? originalNote?.isStarred ?? false))
-    fd.append('isPinned', String(textUpdates.isPinned ?? originalNote?.isPinned ?? false))
-    fd.append('isShared', String(textUpdates.isShared ?? originalNote?.isShared ?? false))
+    fd.append('color', colorToSend)
+    fd.append('isStarred', String(isStarredToSend))
+    fd.append('isPinned', String(isPinnedToSend))
+    fd.append('isShared', String(isSharedToSend))
     fd.append('imageKeys', JSON.stringify(textUpdates.imageKeys ?? originalNote?.imageKeys ?? []))
-    fd.append('audioKey', textUpdates.audioKey ?? originalNote?.audioKey ?? '')
+    fd.append('audioKey', audioKeyToSend)
     newImages?.forEach(f => fd.append('images', f))
     if (newAudio) fd.append('audio', newAudio)
 

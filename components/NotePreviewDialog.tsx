@@ -831,7 +831,11 @@ export function NotePreviewDialog({ note: propNote, isOpen, onClose }: NotePrevi
           {showPalette && (
             <div className="absolute bottom-[calc(100%+4px)] left-1/2 -translate-x-1/2 bg-white dark:bg-[#2C2C2E] p-2 rounded-2xl shadow-xl border border-black/5 dark:border-white/5 flex gap-2 justify-start w-[calc(100%-1rem)] max-w-[450px] overflow-x-auto custom-scrollbar z-10">
               <button 
-                onClick={() => { setColor(null); setShowPalette(false) }} 
+                onClick={() => { 
+                  setColor(null); 
+                  setShowPalette(false);
+                  updateNoteOptimistically(note.id, { color: null });
+                }} 
                 className={`w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center shrink-0 transition-transform hover:scale-110 ${color === null ? 'ring-2 ring-offset-2 ring-black dark:ring-offset-[#2C2C2E] dark:ring-white' : ''}`}
               >
                 <span className="block w-full h-[2px] bg-red-500 rotate-45"></span>
@@ -850,7 +854,11 @@ export function NotePreviewDialog({ note: propNote, isOpen, onClose }: NotePrevi
               ].map(c => (
                 <button 
                   key={c} 
-                  onClick={() => { setColor(c); setShowPalette(false) }}
+                  onClick={() => { 
+                    setColor(c); 
+                    setShowPalette(false);
+                    updateNoteOptimistically(note.id, { color: c });
+                  }}
                   className={`w-8 h-8 rounded-full border border-black/10 transition-transform hover:scale-110 shrink-0 ${color === c ? 'ring-2 ring-offset-2 ring-black dark:ring-offset-[#2C2C2E] dark:ring-white' : ''}`}
                   style={{ backgroundColor: c }}
                 />
