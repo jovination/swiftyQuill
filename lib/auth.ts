@@ -43,7 +43,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error("Invalid password.");
           }
 
-          if (!user.emailVerified) {
+          const requireVerification = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+          if (requireVerification && !user.emailVerified) {
             throw new Error("Please verify your email before logging in.");
           }
 
