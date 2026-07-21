@@ -233,7 +233,9 @@ export default function NotesList({ currentTag }: NotesListProps) {
                   <Mic3 className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-800 dark:text-foreground">Voice Memo attached</span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-foreground">
+                    {note.title ? `${note.title} attached` : "Audio attached"}
+                  </span>
                   <span className="text-xs text-muted-foreground">Audio ready to play</span>
                 </div>
               </div>
