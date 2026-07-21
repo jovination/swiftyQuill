@@ -132,6 +132,7 @@ model Note {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags        NoteTag[]
   sharedNotes SharedNote[]
+  aiJobs      AIJob[]
 
   @@index([userId])
 }
@@ -291,3 +292,26 @@ model Report {
 
   @@index([reporterId])
 }
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model AIJob {
+  id          String    @id @default(cuid())
+  noteId      String
+  type        String    @default("VOICE_TRANSCRIPTION")
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  note        Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@index([status])
+}
+

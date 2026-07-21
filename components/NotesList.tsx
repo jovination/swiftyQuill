@@ -19,6 +19,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { Spinner } from "@/components/ui/spinner"
+import { SpinnerBadge } from "@/components/ui/spinner-badge"
 import { RiDeleteBinLine } from "react-icons/ri";
 import { Sparkles, ListCheck } from "lucide-react"
 import { Button } from './ui/button'
@@ -145,16 +146,8 @@ export default function NotesList({ currentTag }: NotesListProps) {
           <h2 className={`font-medium text-md mb-2 truncate ${note.color ? 'text-gray-900' : ''}`}>{note.title}</h2>
           
           {(note.audioKey || note.audioUrl) && (!note.transcript && note.content === 'Voice Memo audio attached.') && (
-            <div className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 w-fit">
-              <Spinner className="text-emerald-500 w-3.5 h-3.5" />
-              <div className="flex items-center gap-0.5 h-3">
-                <span className="w-0.5 h-2.5 bg-emerald-500 rounded-full animate-[bounce_1s_infinite_100ms]" />
-                <span className="w-0.5 h-3 bg-emerald-500 rounded-full animate-[bounce_1s_infinite_200ms]" />
-                <span className="w-0.5 h-2 bg-emerald-500 rounded-full animate-[bounce_1s_infinite_300ms]" />
-              </div>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                Transcribing voice memo...
-              </span>
+            <div className="mb-3">
+              <SpinnerBadge status="Transcribing voice memo..." variant="emerald" />
             </div>
           )}
           

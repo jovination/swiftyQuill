@@ -12,8 +12,23 @@ export async function processAudioNoteInBackground(
   userId: string,
   audioBuffer?: Buffer
 ): Promise<boolean> {
+  let job: any = null;
   try {
     console.log(`[AudioProcessor] Starting background processing for note ${noteId}...`);
+
+    // Create or update tracking AIJob record
+    try {
+      job = await (prisma as any).aIJob.create({
+        data: {
+          noteId,
+          type: "VOICE_TRANSCRIPTION",
+          status: "PROCESSING",
+          attempts: 1,
+        },
+      });
+    } catch (jobErr) {
+      console.warn("[AudioProcessor] Could not create tracking AIJob record:", jobErr);
+    }
 
     let buffer = audioBuffer;
     if (!buffer) {
@@ -21,6 +36,12 @@ export async function processAudioNoteInBackground(
         buffer = await downloadFromR2(audioKey);
       } catch (err) {
         console.error(`[AudioProcessor] Failed to download audio from R2 for note ${noteId}:`, err);
+        if (job) {
+          await (prisma as any).aIJob.update({
+            where: { id: job.id },
+            data: { status: "FAILED", error: "Failed to download audio from R2" },
+          }).catch(() => {});
+        }
         return false;
       }
     }
@@ -109,10 +130,23 @@ export async function processAudioNoteInBackground(
       },
     });
 
+    if (job) {
+      await (prisma as any).aIJob.update({
+        where: { id: job.id },
+        data: { status: "COMPLETED", processedAt: new Date() },
+      }).catch(() => {});
+    }
+
     console.log(`[AudioProcessor] Successfully processed and updated note ${noteId} ("${structured.title}")`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[AudioProcessor] Error processing audio note ${noteId}:`, error);
+    if (job) {
+      await (prisma as any).aIJob.update({
+        where: { id: job.id },
+        data: { status: "FAILED", error: String(error?.message || error) },
+      }).catch(() => {});
+    }
     return false;
   }
 }
