@@ -8,7 +8,7 @@ const featuresData = [
   {
     icon: RiQuillPenLine, 
     title: "Easy Note Taking",
-    description: "Capture ideas instantly with a distraction-free interface, making writing and brainstorming seamless.",
+    description: "Capture ideas instantly with AI voice memos in a distraction-free interface, making writing and brainstorming seamless.",
   },
   {
     icon: PiTreeStructure, 

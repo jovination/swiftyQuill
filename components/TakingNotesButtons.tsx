@@ -401,7 +401,7 @@ function TakingNotesButtons(){
             
             // Add transcribed note to client state
             setNotes(prev => [newNote, ...prev]);
-            toast.success("Voice note transcribed with Groq AI!");
+            toast.success("Voice note transcribed with AI!");
 
             // Reset recorder UI
             setIsTranscribeVisible(false);
