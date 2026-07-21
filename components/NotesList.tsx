@@ -71,12 +71,20 @@ export default function NotesList({ currentTag }: NotesListProps) {
   };
 
   const filteredNotes = useMemo(() => {
-    if (currentTag === 'All') return notes;
-    
-    return notes.filter(note => {
-      if (currentTag === 'Starred') return note.isStarred;
-      if (currentTag === 'Shared') return note.isShared;
-      return note.tags.some(({ tag }) => tag.name === currentTag);
+    let list = notes;
+    if (currentTag !== 'All') {
+      list = notes.filter(note => {
+        if (currentTag === 'Starred') return note.isStarred;
+        if (currentTag === 'Shared') return note.isShared;
+        return note.tags.some(({ tag }) => tag.name === currentTag);
+      });
+    }
+
+    // Always sort by updatedAt descending (new or recently edited notes at the top)
+    return [...list].sort((a, b) => {
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
     });
   }, [notes, currentTag]);
 

@@ -18,8 +18,9 @@ interface NotePreviewDialogProps {
   onClose: () => void
 }
 
-export function NotePreviewDialog({ note, isOpen, onClose }: NotePreviewDialogProps) {
-  const { updateNoteOptimistically, toggleActionItemOptimistically } = useNotes()
+export function NotePreviewDialog({ note: propNote, isOpen, onClose }: NotePreviewDialogProps) {
+  const { notes, updateNoteOptimistically, toggleActionItemOptimistically } = useNotes()
+  const note = notes.find(n => n.id === propNote?.id) || propNote
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
