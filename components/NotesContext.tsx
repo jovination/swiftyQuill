@@ -35,6 +35,7 @@ export interface Note {
   updatedAt: string
   createdAt?: string
   isStarred: boolean
+  isPinned?: boolean
   isShared: boolean
   tags: NoteTag[]
   /** Client-only flag: true while the API call hasn't resolved yet */
@@ -65,7 +66,7 @@ interface NotesContextValue {
   ) => void
   updateNoteOptimistically: (
     noteId: string,
-    updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'imageKeys' | 'isStarred' | 'isShared' | 'audioUrl' | 'audioKey' | 'color'>> & {
+    updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'imageKeys' | 'isStarred' | 'isPinned' | 'isShared' | 'audioUrl' | 'audioKey' | 'color'>> & {
       newImages?: File[]
       newAudio?: File | null
     }
@@ -154,6 +155,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       isStarred: false,
+      isPinned: false,
       isShared: false,
       tags: [],
       isPending: true,
@@ -200,7 +202,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
 
   // ── Update Note Optimistically ───────────────────────────────────────────
 
-  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'imageKeys' | 'isStarred' | 'isShared' | 'audioUrl' | 'audioKey' | 'color'>> & { newImages?: File[], newAudio?: File | null }) => {
+  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'imageKeys' | 'isStarred' | 'isPinned' | 'isShared' | 'audioUrl' | 'audioKey' | 'color'>> & { newImages?: File[], newAudio?: File | null }) => {
     const { newImages, newAudio, ...textUpdates } = updates
 
     // 1. Snapshot for rollback, apply text updates to UI
@@ -221,6 +223,7 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
     if (textUpdates.content !== undefined) fd.append('content', textUpdates.content)
     fd.append('color', textUpdates.color || '')
     fd.append('isStarred', String(textUpdates.isStarred ?? originalNote?.isStarred ?? false))
+    fd.append('isPinned', String(textUpdates.isPinned ?? originalNote?.isPinned ?? false))
     fd.append('isShared', String(textUpdates.isShared ?? originalNote?.isShared ?? false))
     fd.append('imageKeys', JSON.stringify(textUpdates.imageKeys ?? originalNote?.imageKeys ?? []))
     fd.append('audioKey', textUpdates.audioKey ?? originalNote?.audioKey ?? '')

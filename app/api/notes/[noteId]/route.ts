@@ -87,6 +87,7 @@ export async function PUT(
     const content = formData.get("content") as string;
     const color = (formData.get("color") as string) || null;
     const isStarred = formData.get("isStarred") === "true";
+    const isPinned = formData.has("isPinned") ? formData.get("isPinned") === "true" : existingNote.isPinned;
     const isShared = formData.get("isShared") === "true";
     const incomingImageKeys = JSON.parse(
       (formData.get("imageKeys") as string) || "[]"
@@ -147,6 +148,7 @@ export async function PUT(
         imageKeys: allImageKeys,
         audioKey: finalAudioKey,
         isStarred,
+        isPinned,
         isShared,
         color,
         updatedAt: new Date(),

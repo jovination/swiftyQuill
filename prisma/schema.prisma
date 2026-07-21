@@ -125,6 +125,7 @@ model Note {
   language    String?
   color       String?
   isStarred   Boolean      @default(false)
+  isPinned    Boolean      @default(false)
   isShared    Boolean      @default(false)
   status      NoteStatus   @default(ACTIVE)
   createdAt   DateTime     @default(now())

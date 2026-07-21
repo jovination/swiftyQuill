@@ -6,6 +6,7 @@ export type NoteCreateInput = {
   content: string;
   imageUrls?: string[];
   isStarred?: boolean;
+  isPinned?: boolean;
   isShared?: boolean;
   tags?: string[]; // Tag names
 };
@@ -15,6 +16,7 @@ export type NoteUpdateInput = {
   content?: string;
   imageUrls?: string[];
   isStarred?: boolean;
+  isPinned?: boolean;
   isShared?: boolean;
   tags?: string[]; // Tag names to set (replaces existing tags)
 };

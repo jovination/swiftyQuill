@@ -21,7 +21,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { SpinnerBadge } from "@/components/ui/spinner-badge"
 import { RiDeleteBinLine } from "react-icons/ri";
-import { Sparkles, ListCheck } from "lucide-react"
+import { Sparkles, ListCheck, Pin, PinOff } from "lucide-react"
 import { Button } from './ui/button'
 import { useNotes, type Note } from './NotesContext'
 import { NotePreviewDialog } from './NotePreviewDialog'
@@ -34,6 +34,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
   const {
     notes,
     tags: availableTags,
+    updateNoteOptimistically,
     deleteNoteOptimistically,
     addTagToNoteOptimistically,
     removeTagFromNoteOptimistically,
@@ -97,8 +98,13 @@ export default function NotesList({ currentTag }: NotesListProps) {
       });
     }
 
-    // Always sort by updatedAt descending (new or recently edited notes at the top)
+    // Pinned notes are anchored on top, followed by updatedAt descending
     return [...list].sort((a, b) => {
+      const isPinnedA = Boolean(a.isPinned);
+      const isPinnedB = Boolean(b.isPinned);
+      if (isPinnedA !== isPinnedB) {
+        return isPinnedA ? -1 : 1;
+      }
       const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return timeB - timeA;
@@ -145,7 +151,15 @@ export default function NotesList({ currentTag }: NotesListProps) {
           )}
           <div className={`flex justify-between items-center text-xs mb-1 ${note.color ? 'text-gray-900' : 'text-muted-foreground'}`}>
             <span suppressHydrationWarning className="text-date">{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-            {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
+            <div className="flex items-center gap-1.5">
+              {note.isPinned && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                  <Pin className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
+                  Pinned
+                </span>
+              )}
+              {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
+            </div>
           </div>
           <h2 className={`font-medium text-md mb-2 truncate ${note.color ? 'text-gray-900' : ''}`}>{note.title}</h2>
           
@@ -375,6 +389,19 @@ export default function NotesList({ currentTag }: NotesListProps) {
               View Note →
             </button>
             <div className="flex gap-2 items-center">
+              <button 
+                onClick={() => updateNoteOptimistically(note.id, { isPinned: !note.isPinned })}
+                title={note.isPinned ? "Unpin Note" : "Pin Note"}
+                className={`flex items-center text-sm px-3 py-1 rounded-full gap-1 transition-all duration-300 ${
+                  note.isPinned 
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30' 
+                    : 'bg-black/5 dark:bg-muted hover:bg-black/10 dark:hover:bg-muted/80'
+                }`}
+              >
+                {note.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                {note.isPinned ? 'Pinned' : 'Pin'}
+              </button>
+
               <span className="flex items-center text-sm px-3 py-1 bg-black/5 dark:bg-muted rounded-full gap-1 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/80 transition-all duration-300">
                 <FiSend />
                 Share 
@@ -386,6 +413,15 @@ export default function NotesList({ currentTag }: NotesListProps) {
                     <HiOutlineDotsHorizontal />
                   </MenubarTrigger>
                   <MenubarContent>
+                    <MenubarItem
+                      onSelect={() => {
+                        updateNoteOptimistically(note.id, { isPinned: !note.isPinned })
+                      }}
+                    >
+                      {note.isPinned ? "Unpin Note" : "Pin Note"} <MenubarShortcut>
+                        <Pin className={`w-3.5 h-3.5 ${note.isPinned ? 'fill-amber-500 text-amber-500' : ''}`} />
+                      </MenubarShortcut>
+                    </MenubarItem>
                     <MenubarItem>
                       Copy Note <MenubarShortcut>
                         <IoCopyOutline className="" />
