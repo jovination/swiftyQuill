@@ -10,7 +10,7 @@ export default async function AdminRevenuePage() {
   const formattedData = payments.map(payment => ({
     id: payment.id,
     user: payment.user.username || payment.user.email,
-    amount: `$${(payment.amount / 100).toFixed(2)}`,
+    amount: `$${payment.amount.toFixed(2)}`,
     currency: payment.currency.toUpperCase(),
     status: payment.status,
     date: payment.createdAt.toLocaleDateString(),

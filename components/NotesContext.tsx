@@ -17,7 +17,9 @@ export interface Note {
   title: string
   content: string
   audioUrl?: string | null
+  audioKey?: string | null
   imageUrls?: string[]
+  imageKeys?: string[]
   color?: string | null
   updatedAt: string
   createdAt?: string
@@ -42,8 +44,21 @@ interface NotesContextValue {
   tags: Tag[]
 
   // Notes mutations
-  addNoteOptimistically: (note: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null, color?: string | null }) => void
-  updateNoteOptimistically: (noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'isStarred' | 'isShared' | 'audioUrl' | 'color'>>) => void
+  addNoteOptimistically: (
+    note: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & {
+      audioUrl?: string | null
+      color?: string | null
+      newImages?: File[]
+      newAudio?: File | null
+    }
+  ) => void
+  updateNoteOptimistically: (
+    noteId: string,
+    updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'imageKeys' | 'isStarred' | 'isShared' | 'audioUrl' | 'audioKey' | 'color'>> & {
+      newImages?: File[]
+      newAudio?: File | null
+    }
+  ) => void
   deleteNoteOptimistically: (noteId: string) => void
   addTagToNoteOptimistically: (noteId: string, tag: { id: string; name: string }) => void
   removeTagFromNoteOptimistically: (noteId: string, tagId: string) => void
@@ -73,15 +88,18 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
 
   // ── Add Note Optimistically ──────────────────────────────────────────────
 
-  const addNoteOptimistically = useCallback((noteData: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null, color?: string | null }) => {
+  const addNoteOptimistically = useCallback((noteData: Omit<Note, 'id' | 'updatedAt' | 'isStarred' | 'isShared' | 'tags'> & { audioUrl?: string | null, color?: string | null, newImages?: File[], newAudio?: File | null }) => {
+    const { newImages, newAudio, ...noteFields } = noteData
     const tempId = `temp-${Date.now()}`
     const tempNote: Note = {
       id: tempId,
-      title: noteData.title,
-      content: noteData.content,
-      audioUrl: noteData.audioUrl || null,
-      imageUrls: noteData.imageUrls || [],
-      color: noteData.color || null,
+      title: noteFields.title,
+      content: noteFields.content,
+      audioUrl: noteFields.audioUrl || null,
+      audioKey: null,
+      imageUrls: noteFields.imageUrls || [],
+      imageKeys: [],
+      color: noteFields.color || null,
       updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       isStarred: false,
@@ -93,22 +111,22 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
     // 1. Immediately add to UI
     setNotes(prev => [tempNote, ...prev])
 
-    // 2. Fire API in background
-    fetch('/api/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: noteData.title,
-        content: noteData.content,
-        imageUrls: noteData.imageUrls || [],
-        audioUrl: noteData.audioUrl || null,
-        color: noteData.color || null,
-      }),
-    })
+    // 2. Build FormData and fire API
+    const fd = new FormData()
+    fd.append('title', noteFields.title)
+    fd.append('content', noteFields.content)
+    fd.append('color', noteFields.color || '')
+    fd.append('imageKeys', JSON.stringify([]))
+    fd.append('audioKey', '')
+    fd.append('tags', JSON.stringify([]))
+    newImages?.forEach(f => fd.append('images', f))
+    if (newAudio) fd.append('audio', newAudio)
+
+    fetch('/api/notes', { method: 'POST', body: fd })
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to save note')
         const savedNote = await res.json()
-        // 3. Replace temp note with real note from server
+        // 3. Replace temp note with real note (server returns presigned URLs + keys)
         setNotes(prev =>
           prev.map(n =>
             n.id === tempId
@@ -131,31 +149,49 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
 
   // ── Update Note Optimistically ───────────────────────────────────────────
 
-  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'isStarred' | 'isShared' | 'audioUrl' | 'color'>>) => {
-    // 1. Snapshot for rollback
+  const updateNoteOptimistically = useCallback((noteId: string, updates: Partial<Pick<Note, 'title' | 'content' | 'imageUrls' | 'imageKeys' | 'isStarred' | 'isShared' | 'audioUrl' | 'audioKey' | 'color'>> & { newImages?: File[], newAudio?: File | null }) => {
+    const { newImages, newAudio, ...textUpdates } = updates
+
+    // 1. Snapshot for rollback, apply text updates to UI
     let originalNote: Note | undefined
 
     setNotes(prev => {
       originalNote = prev.find(n => n.id === noteId)
-      return prev.map(n => 
-        n.id === noteId 
-          ? { ...n, ...updates, updatedAt: new Date().toISOString() } 
+      return prev.map(n =>
+        n.id === noteId
+          ? { ...n, ...textUpdates, updatedAt: new Date().toISOString() }
           : n
       )
     })
 
-    // 2. Fire API in background
-    fetch(`/api/notes/${noteId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    })
+    // 2. Build FormData — use current keys from state (includes any user removals)
+    const fd = new FormData()
+    if (textUpdates.title !== undefined) fd.append('title', textUpdates.title)
+    if (textUpdates.content !== undefined) fd.append('content', textUpdates.content)
+    fd.append('color', textUpdates.color || '')
+    fd.append('isStarred', String(textUpdates.isStarred ?? originalNote?.isStarred ?? false))
+    fd.append('isShared', String(textUpdates.isShared ?? originalNote?.isShared ?? false))
+    fd.append('imageKeys', JSON.stringify(textUpdates.imageKeys ?? originalNote?.imageKeys ?? []))
+    fd.append('audioKey', textUpdates.audioKey ?? originalNote?.audioKey ?? '')
+    newImages?.forEach(f => fd.append('images', f))
+    if (newAudio) fd.append('audio', newAudio)
+
+    fetch(`/api/notes/${noteId}`, { method: 'PUT', body: fd })
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to update note')
+        const savedNote = await res.json()
+        // 3. Replace with server response (presigned URLs + updated keys)
+        setNotes(prev =>
+          prev.map(n =>
+            n.id === noteId
+              ? { ...n, ...savedNote, isPending: false }
+              : n
+          )
+        )
         toast.success('Note updated')
       })
       .catch(() => {
-        // 3. Rollback
+        // 4. Rollback
         if (originalNote) {
           setNotes(prev => prev.map(n => n.id === noteId ? originalNote! : n))
         }

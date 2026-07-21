@@ -3,6 +3,7 @@ import { UserGrowthChart } from "@/components/admin/UserGrowthChart";
 import { ActivityHeatmap } from "@/components/admin/ActivityHeatmap";
 import { Users, FileText, Database, CreditCard } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getAllUserStorageBytes } from "@/lib/storage";
 
 export default async function AdminOverviewPage() {
   const totalUsers = await prisma.user.count();
@@ -11,16 +12,9 @@ export default async function AdminOverviewPage() {
     where: { status: "ACTIVE" }
   });
 
-  const usersWithStorage = await prisma.user.findMany({
-    select: { storageUsed: true }
-  });
-  const totalStorageBytes = usersWithStorage.reduce((acc, user) => acc + Number(user.storageUsed), 0);
-  let totalStorageMB = (totalStorageBytes / (1024 * 1024)).toFixed(2);
-  
-  // Mock fallback for empty database to avoid 0.00 MB
-  if (totalStorageBytes === 0) {
-    totalStorageMB = "124.50";
-  }
+  const storageMap = await getAllUserStorageBytes();
+  const totalStorageBytes = Array.from(storageMap.values()).reduce((acc, bytes) => acc + bytes, 0);
+  const totalStorageMB = (totalStorageBytes / (1024 * 1024)).toFixed(2);
 
   // User Growth Logic (Last 90 Days)
   const ninetyDaysAgo = new Date();

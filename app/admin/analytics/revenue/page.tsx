@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { LineChartCard } from "@/components/admin/LineChartCard";
 import { getDateRangeFromParam } from "@/lib/admin/analytics";
-import { DollarSign, TrendingUp, CreditCard, Receipt } from "lucide-react";
+import { DollarSign, CreditCard } from "lucide-react";
 
 export default async function RevenueAnalyticsPage({
   searchParams,
@@ -21,12 +21,6 @@ export default async function RevenueAnalyticsPage({
   });
 
   const totalRevenue = payments.reduce((acc, pay) => acc + pay.amount, 0);
-
-  // MRR & ARR Mocking (assuming total revenue is lifetime or based on active subs)
-  // Realistically MRR = active subscriptions * plan price
-  const activeSubs = await prisma.subscription.count({ where: { status: "ACTIVE" } });
-  const MRR = activeSubs * 9.99; // Mocking a $9.99/mo plan
-  const ARR = MRR * 12;
 
   // Revenue Time Series
   const dailyRevenueMap = new Map<string, number>();
@@ -56,18 +50,6 @@ export default async function RevenueAnalyticsPage({
           description="In selected range"
         />
         <MetricCard
-          title="MRR"
-          value={`$${MRR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<TrendingUp className="text-blue-500" />}
-          description="Monthly Recurring Revenue"
-        />
-        <MetricCard
-          title="ARR"
-          value={`$${ARR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<TrendingUp className="text-indigo-500" />}
-          description="Annual Recurring Revenue"
-        />
-        <MetricCard
           title="Completed Payments"
           value={payments.length.toLocaleString()}
           icon={<CreditCard className="text-amber-500" />}
@@ -75,7 +57,7 @@ export default async function RevenueAnalyticsPage({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-6">
         <LineChartCard 
           title="Revenue Trend" 
           description="Daily revenue in USD"
@@ -83,11 +65,6 @@ export default async function RevenueAnalyticsPage({
           xDataKey="date"
           yDataKey="Revenue"
         />
-        <div className="rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-6 flex flex-col justify-center items-center text-center">
-            <Receipt className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold">Payment History</h3>
-            <p className="text-sm text-muted-foreground mt-2">Recent transactions and refunds coming soon.</p>
-        </div>
       </div>
     </div>
   );

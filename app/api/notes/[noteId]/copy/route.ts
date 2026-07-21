@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+import { noteToResponse } from '@/lib/note-response';
+
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ noteId: string }> }
@@ -41,13 +43,16 @@ export async function POST(
             return NextResponse.json({ error: 'Note not found' }, { status: 404 });
         }
 
-        // Create a copy of the note
+        // Create a copy of the note (shares the same R2 files and/or legacy URLs)
         const copiedNote = await prisma.note.create({
             data: {
                 userId: user.id,
                 title: `${originalNote.title} (Copy)`,
                 content: originalNote.content,
                 imageUrls: originalNote.imageUrls,
+                imageKeys: originalNote.imageKeys,
+                audioUrl: originalNote.audioUrl,
+                audioKey: originalNote.audioKey,
                 tags: {
                     create: originalNote.tags.map(({ tag }) => ({
                         tag: {
@@ -65,7 +70,8 @@ export async function POST(
             }
         });
 
-        return NextResponse.json(copiedNote);
+        const response = await noteToResponse(copiedNote);
+        return NextResponse.json(response);
     } catch (error) {
         console.error('Error copying note:', error);
         return NextResponse.json(

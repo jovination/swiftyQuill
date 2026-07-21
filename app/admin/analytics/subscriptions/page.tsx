@@ -14,13 +14,11 @@ export default async function SubscriptionAnalyticsPage({
 
   const [
     activeSubs,
-    trialSubs,
     cancelledSubs,
     newSubsInRange
   ] = await Promise.all([
     prisma.subscription.count({ where: { status: "ACTIVE" } }),
-    prisma.subscription.count({ where: { status: "PAUSED" } }), // Changed from TRIALING
-    prisma.subscription.count({ where: { status: "CANCELED" } }), // Changed from CANCELLED
+    prisma.subscription.count({ where: { status: "CANCELED" } }),
     prisma.subscription.count({ where: { startDate: { gte: start, lte: end } } }),
   ]);
 

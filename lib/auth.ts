@@ -43,6 +43,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error("Invalid password.");
           }
 
+          const requireVerification = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+          if (requireVerification && !user.emailVerified) {
+            throw new Error("Please verify your email before logging in.");
+          }
+
           return { 
             id: user.id, 
             email: user.email, 
@@ -95,12 +100,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!existingUser) {
-          // Generate a unique username from email
           const baseUsername = user.email!.split("@")[0];
           let username = baseUsername;
           let counter = 1;
           
-          // Keep trying until we find a unique username
           while (await prisma.user.findUnique({ where: { username } })) {
             username = `${baseUsername}${counter}`;
             counter++;
@@ -110,6 +113,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             data: {
               email: user.email!,
               username: username,
+              emailVerified: new Date(),
               createdAt: new Date(),
               updatedAt: new Date(),
             },

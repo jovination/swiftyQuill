@@ -40,13 +40,16 @@ function TakingNotesButtons(){
         imageUrls: []
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingImages, setPendingImages] = useState<File[]>([]);
     const [todoListTitle, setTodoListTitle] = useState('');
     const [todoTasks, setTodoTasks] = useState<{id: string, text: string, done: boolean}[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedEmoji, setSelectedEmoji] = useState('😀');
     const [taskEmoji, setTaskEmoji] = useState<string | null>(null);
     const [todoImageUrl, setTodoImageUrl] = useState<string | null>(null);
+    const [todoImageFile, setTodoImageFile] = useState<File | null>(null);
     const [voiceMemoImageUrl, setVoiceMemoImageUrl] = useState<string | null>(null);
+    const [voiceMemoImageFile, setVoiceMemoImageFile] = useState<File | null>(null);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const emojiButtonRef = useRef<HTMLButtonElement>(null);
@@ -286,29 +289,23 @@ function TakingNotesButtons(){
                 return;
             }
 
-            // Convert to base64 for the audio URL
-            const reader = new FileReader();
-            reader.readAsDataURL(finalBlob);
-            reader.onloadend = () => {
-                const base64data = reader.result as string;
+            const audioFile = new File([finalBlob], `voice-memo-${Date.now()}.webm`, { type: 'audio/webm' });
 
-                const voiceMemoNumbers = notes
-                    .map(n => n.title.match(/^Voice Memo (\d+)$/))
-                    .filter(match => match !== null)
-                    .map(match => parseInt(match![1], 10));
-                const nextNumber = voiceMemoNumbers.length > 0 ? Math.max(...voiceMemoNumbers) + 1 : 1;
-                const newTitle = `Voice Memo ${nextNumber}`;
+            const voiceMemoNumbers = notes
+                .map(n => n.title.match(/^Voice Memo (\d+)$/))
+                .filter(match => match !== null)
+                .map(match => parseInt(match![1], 10));
+            const nextNumber = voiceMemoNumbers.length > 0 ? Math.max(...voiceMemoNumbers) + 1 : 1;
+            const newTitle = `Voice Memo ${nextNumber}`;
 
-                // Optimistically add note — closes UI instantly
-                addNoteOptimistically({
-                    title: newTitle,
-                    content: 'Voice Memo audio attached.',
-                    audioUrl: base64data,
-                    imageUrls: voiceMemoImageUrl ? [voiceMemoImageUrl] : [],
-                });
-            };
+            addNoteOptimistically({
+                title: newTitle,
+                content: 'Voice Memo audio attached.',
+                imageUrls: voiceMemoImageUrl ? [voiceMemoImageUrl] : [],
+                newImages: voiceMemoImageFile ? [voiceMemoImageFile] : undefined,
+                newAudio: audioFile,
+            });
 
-            // Reset recorder UI immediately
             setIsTranscribeVisible(false);
             setRecordingStatus('idle');
             setWaveformHeights([]);
@@ -316,6 +313,7 @@ function TakingNotesButtons(){
             recordingDurationRef.current = 0;
             setAudioBlob(null);
             setVoiceMemoImageUrl(null);
+            setVoiceMemoImageFile(null);
             setPlaybackProgress(0);
             setPlaybackStatus('idle');
             if (audioElementRef.current) {
@@ -361,19 +359,15 @@ function TakingNotesButtons(){
     const handleSaveNote = () => {
         if (!noteData.title.trim() && !noteData.content.trim()) return;
         
-        // Optimistically add note — appears in list instantly
         addNoteOptimistically({
             title: noteData.title,
             content: noteData.content,
             imageUrls: noteData.imageUrls,
+            newImages: pendingImages.length > 0 ? pendingImages : undefined,
         });
         
-        // Reset form and close immediately
-        setNoteData({
-            title: '',
-            content: '',
-            imageUrls: []
-        });
+        setNoteData({ title: '', content: '', imageUrls: [] });
+        setPendingImages([]);
         setIsInputVisible(false);
     };
 
@@ -405,11 +399,13 @@ function TakingNotesButtons(){
             title: todoListTitle,
             content: formattedContent,
             imageUrls: todoImageUrl ? [todoImageUrl] : [],
+            newImages: todoImageFile ? [todoImageFile] : undefined,
         });
         
         setTodoListTitle('');
         setTodoTasks([]);
         setTodoImageUrl(null);
+        setTodoImageFile(null);
         setSelectedEmoji('😀');
         setTaskEmoji(null);
         setShowEmojiPicker(false);
@@ -423,26 +419,24 @@ function TakingNotesButtons(){
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
-        if (files.length > 0) {
-            const urls = files.map(file => URL.createObjectURL(file));
-            handleInputChange('imageUrls', [...noteData.imageUrls, ...urls]);
-        }
+        if (files.length === 0) return;
+        const previewUrls = files.map(f => URL.createObjectURL(f));
+        setPendingImages(prev => [...prev, ...files]);
+        handleInputChange('imageUrls', [...noteData.imageUrls, ...previewUrls]);
     };
 
     const handleTodoImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            setTodoImageUrl(imageUrl);
-        }
+        if (!file) return;
+        setTodoImageFile(file);
+        setTodoImageUrl(URL.createObjectURL(file));
     };
 
     const handleVoiceMemoImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            setVoiceMemoImageUrl(imageUrl);
-        }
+        if (!file) return;
+        setVoiceMemoImageFile(file);
+        setVoiceMemoImageUrl(URL.createObjectURL(file));
     };
 
     const now = new Date();
