@@ -83,12 +83,24 @@ export async function PUT(
 
     const formData = await req.formData();
 
-    const title = formData.get("title") as string;
-    const content = formData.get("content") as string;
-    const color = (formData.get("color") as string) || null;
-    const isStarred = formData.get("isStarred") === "true";
-    const isPinned = formData.has("isPinned") ? formData.get("isPinned") === "true" : existingNote.isPinned;
-    const isShared = formData.get("isShared") === "true";
+    const title = formData.has("title") && formData.get("title") !== null
+      ? (formData.get("title") as string)
+      : existingNote.title;
+    const content = formData.has("content") && formData.get("content") !== null
+      ? (formData.get("content") as string)
+      : existingNote.content;
+    const color = formData.has("color")
+      ? (formData.get("color") as string) || null
+      : existingNote.color;
+    const isStarred = formData.has("isStarred")
+      ? formData.get("isStarred") === "true"
+      : existingNote.isStarred;
+    const isPinned = formData.has("isPinned")
+      ? formData.get("isPinned") === "true"
+      : Boolean((existingNote as any).isPinned);
+    const isShared = formData.has("isShared")
+      ? formData.get("isShared") === "true"
+      : existingNote.isShared;
     const incomingImageKeys = JSON.parse(
       (formData.get("imageKeys") as string) || "[]"
     ) as string[];

@@ -145,21 +145,28 @@ export default function NotesList({ currentTag }: NotesListProps) {
             <div className="absolute inset-0 -z-10 pointer-events-none" style={{ backgroundColor: note.color }} />
           )}
           {note.isPending && (
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-3.5 right-11 z-10">
               <Spinner className="text-green-400" />
             </div>
           )}
-          <div className={`flex justify-between items-center text-xs mb-1 ${note.color ? 'text-gray-900' : 'text-muted-foreground'}`}>
+          {/* Top Right Pin Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              updateNoteOptimistically(note.id, { isPinned: !note.isPinned });
+            }}
+            title={note.isPinned ? "Unpin Note" : "Pin Note"}
+            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-1.5 rounded-full transition-all duration-300 hover:bg-black/10 dark:hover:bg-white/10 ${
+              note.isPinned
+                ? 'text-red-500 opacity-100'
+                : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100'
+            }`}
+          >
+            <Pin className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${note.isPinned ? 'fill-red-500 text-red-500 rotate-45' : '-rotate-45'}`} />
+          </button>
+          <div className={`flex justify-between items-center text-xs mb-1 pr-8 ${note.color ? 'text-gray-900' : 'text-muted-foreground'}`}>
             <span suppressHydrationWarning className="text-date">{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-            <div className="flex items-center gap-1.5">
-              {note.isPinned && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                  <Pin className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
-                  Pinned
-                </span>
-              )}
-              {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
-            </div>
+            {note.isStarred && <span className="text-yellow-500">★ Starred</span>}
           </div>
           <h2 className={`font-medium text-md mb-2 truncate ${note.color ? 'text-gray-900' : ''}`}>{note.title}</h2>
           
@@ -389,19 +396,6 @@ export default function NotesList({ currentTag }: NotesListProps) {
               View Note →
             </button>
             <div className="flex gap-2 items-center">
-              <button 
-                onClick={() => updateNoteOptimistically(note.id, { isPinned: !note.isPinned })}
-                title={note.isPinned ? "Unpin Note" : "Pin Note"}
-                className={`flex items-center text-sm px-3 py-1 rounded-full gap-1 transition-all duration-300 ${
-                  note.isPinned 
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30' 
-                    : 'bg-black/5 dark:bg-muted hover:bg-black/10 dark:hover:bg-muted/80'
-                }`}
-              >
-                {note.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                {note.isPinned ? 'Pinned' : 'Pin'}
-              </button>
-
               <span className="flex items-center text-sm px-3 py-1 bg-black/5 dark:bg-muted rounded-full gap-1 cursor-pointer hover:bg-black/10 dark:hover:bg-muted/80 transition-all duration-300">
                 <FiSend />
                 Share 
@@ -419,7 +413,7 @@ export default function NotesList({ currentTag }: NotesListProps) {
                       }}
                     >
                       {note.isPinned ? "Unpin Note" : "Pin Note"} <MenubarShortcut>
-                        <Pin className={`w-3.5 h-3.5 ${note.isPinned ? 'fill-amber-500 text-amber-500' : ''}`} />
+                        <Pin className={`w-3.5 h-3.5 ${note.isPinned ? 'fill-red-500 text-red-500' : ''}`} />
                       </MenubarShortcut>
                     </MenubarItem>
                     <MenubarItem>

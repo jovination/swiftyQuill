@@ -219,9 +219,11 @@ export function NotesProvider({ initialNotes, initialTags, children }: NotesProv
 
     // 2. Build FormData — use current keys from state (includes any user removals)
     const fd = new FormData()
-    if (textUpdates.title !== undefined) fd.append('title', textUpdates.title)
-    if (textUpdates.content !== undefined) fd.append('content', textUpdates.content)
-    fd.append('color', textUpdates.color || '')
+    const titleToSend = textUpdates.title ?? originalNote?.title ?? ''
+    const contentToSend = textUpdates.content ?? originalNote?.content ?? ''
+    fd.append('title', titleToSend)
+    fd.append('content', contentToSend)
+    fd.append('color', textUpdates.color ?? originalNote?.color ?? '')
     fd.append('isStarred', String(textUpdates.isStarred ?? originalNote?.isStarred ?? false))
     fd.append('isPinned', String(textUpdates.isPinned ?? originalNote?.isPinned ?? false))
     fd.append('isShared', String(textUpdates.isShared ?? originalNote?.isShared ?? false))
