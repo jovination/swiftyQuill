@@ -42,7 +42,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-muted/20">
+    <div className="flex h-full w-64 flex-col border-r border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px]">
         <Link href="/admin" className="flex items-center gap-2 font-bold">
           <Image src="/logo.svg" alt="Swifty Quill Logo" width={33} height={33} className="rounded-md object-contain dark:invert" />

@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="pointer-events-none absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-accent/20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-chart-2/20 blur-[100px]" />
 
-      <div className="hidden md:block relative z-10 border-r border-border/50 bg-background/80 backdrop-blur-xl">
+      <div className="hidden md:block relative z-10 border-r border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 h-screen">
         <AdminSidebar />
       </div>
       <div className="flex flex-col relative z-10 h-screen overflow-hidden">
