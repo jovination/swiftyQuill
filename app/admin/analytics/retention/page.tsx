@@ -4,51 +4,93 @@ import { prisma } from "@/lib/prisma";
 
 export default async function RetentionAnalyticsPage() {
   const users = await prisma.user.findMany({
-    select: { id: true, createdAt: true }
-  });
-  
-  const auditLogs = await prisma.auditLog.findMany({
-    where: { action: "LOGIN" },
-    select: { actorId: true, createdAt: true }
+    select: { id: true, createdAt: true },
   });
 
-  const userMap = new Map(users.map(u => [u.id, u.createdAt.getTime()]));
+  const sessions = await prisma.session.findMany({
+    select: { userId: true, createdAt: true },
+  });
+
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const sessionsByUser = new Map<string, Date[]>();
+  for (const s of sessions) {
+    const arr = sessionsByUser.get(s.userId) ?? [];
+    arr.push(s.createdAt);
+    sessionsByUser.set(s.userId, arr);
+  }
 
   let d1Eligible = 0, d1Retained = 0;
   let d7Eligible = 0, d7Retained = 0;
   let d30Eligible = 0, d30Retained = 0;
 
-  const now = Date.now();
-  const DAY_MS = 24 * 60 * 60 * 1000;
+  for (const user of users) {
+    const signupMs = user.createdAt.getTime();
+    const ageDays = (now - signupMs) / DAY_MS;
 
-  for (const [userId, createdAtMs] of userMap.entries()) {
-    const ageMs = now - createdAtMs;
-
-    // Check Day 1 (24-48 hours after signup)
-    if (ageMs > 2 * DAY_MS) {
+    if (ageDays >= 2) {
       d1Eligible++;
-      const returned = auditLogs.some(l => l.actorId === userId && l.createdAt.getTime() - createdAtMs >= DAY_MS && l.createdAt.getTime() - createdAtMs <= 2 * DAY_MS);
+      const userSessions = sessionsByUser.get(user.id) ?? [];
+      const returned = userSessions.some(
+        (s) => s.getTime() >= signupMs + DAY_MS
+      );
       if (returned) d1Retained++;
     }
 
-    // Check Day 7
-    if (ageMs > 8 * DAY_MS) {
+    if (ageDays >= 8) {
       d7Eligible++;
-      const returned = auditLogs.some(l => l.actorId === userId && l.createdAt.getTime() - createdAtMs >= 7 * DAY_MS && l.createdAt.getTime() - createdAtMs <= 8 * DAY_MS);
+      const userSessions = sessionsByUser.get(user.id) ?? [];
+      const returned = userSessions.some(
+        (s) => s.getTime() >= signupMs + 7 * DAY_MS
+      );
       if (returned) d7Retained++;
     }
 
-    // Check Day 30
-    if (ageMs > 31 * DAY_MS) {
+    if (ageDays >= 31) {
       d30Eligible++;
-      const returned = auditLogs.some(l => l.actorId === userId && l.createdAt.getTime() - createdAtMs >= 30 * DAY_MS && l.createdAt.getTime() - createdAtMs <= 31 * DAY_MS);
+      const userSessions = sessionsByUser.get(user.id) ?? [];
+      const returned = userSessions.some(
+        (s) => s.getTime() >= signupMs + 30 * DAY_MS
+      );
       if (returned) d30Retained++;
     }
   }
 
-  const d1Retention = d1Eligible > 0 ? ((d1Retained / d1Eligible) * 100).toFixed(1) + "%" : "N/A";
-  const d7Retention = d7Eligible > 0 ? ((d7Retained / d7Eligible) * 100).toFixed(1) + "%" : "N/A";
-  const d30Retention = d30Eligible > 0 ? ((d30Retained / d30Eligible) * 100).toFixed(1) + "%" : "N/A";
+  const d1Retention =
+    d1Eligible > 0 ? ((d1Retained / d1Eligible) * 100).toFixed(1) + "%" : "N/A";
+  const d7Retention =
+    d7Eligible > 0 ? ((d7Retained / d7Eligible) * 100).toFixed(1) + "%" : "N/A";
+  const d30Retention =
+    d30Eligible > 0
+      ? ((d30Retained / d30Eligible) * 100).toFixed(1) + "%"
+      : "N/A";
+
+  const avgSessionLength =
+    sessions.length > 0
+      ? (() => {
+          let totalMs = 0;
+          let count = 0;
+          for (const s of sessions) {
+            const created = s.createdAt.getTime();
+            const expires = new Date(
+              Date.now() + 30 * DAY_MS
+            ).getTime();
+            const diff = expires - created;
+            if (diff > 0 && diff < 30 * DAY_MS) {
+              totalMs += diff;
+              count++;
+            }
+          }
+          if (count === 0) return "N/A";
+          const avgMs = totalMs / count;
+          const hours = Math.floor(avgMs / (60 * 60 * 1000));
+          const mins = Math.floor(
+            (avgMs % (60 * 60 * 1000)) / (60 * 1000)
+          );
+          return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        })()
+      : "N/A";
 
   return (
     <div className="space-y-6">
@@ -56,37 +98,39 @@ export default async function RetentionAnalyticsPage() {
         <MetricCard
           title="1-Day Retention"
           value={d1Retention}
-          icon={<UserCheck className="text-blue-500" />}
-          description={d1Eligible > 0 ? `Based on ${d1Eligible} eligible users` : "Not enough data"}
+          icon={<UserCheck />}
+          description={
+            d1Eligible > 0
+              ? `${d1Retained} of ${d1Eligible} eligible users`
+              : "Not enough data"
+          }
         />
         <MetricCard
           title="7-Day Retention"
           value={d7Retention}
-          icon={<CalendarDays className="text-amber-500" />}
-          description={d7Eligible > 0 ? `Based on ${d7Eligible} eligible users` : "Not enough data"}
+          icon={<CalendarDays />}
+          description={
+            d7Eligible > 0
+              ? `${d7Retained} of ${d7Eligible} eligible users`
+              : "Not enough data"
+          }
         />
         <MetricCard
           title="30-Day Retention"
           value={d30Retention}
-          icon={<RefreshCw className="text-indigo-500" />}
-          description={d30Eligible > 0 ? `Based on ${d30Eligible} eligible users` : "Not enough data"}
+          icon={<RefreshCw />}
+          description={
+            d30Eligible > 0
+              ? `${d30Retained} of ${d30Eligible} eligible users`
+              : "Not enough data"
+          }
         />
         <MetricCard
           title="Avg Session Length"
-          value="N/A"
-          icon={<Activity className="text-emerald-500" />}
-          description="Session tracking inactive"
+          value={avgSessionLength}
+          icon={<Activity />}
+          description={`Based on ${sessions.length} sessions`}
         />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm p-6 flex flex-col justify-center items-center text-center lg:col-span-2 min-h-[300px]">
-            <RefreshCw className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold">Cohort Analysis Matrix</h3>
-            <p className="text-sm text-muted-foreground mt-2 max-w-md">
-                A detailed heatmap matrix showing retention cohorts over time requires complex SQL window functions or a dedicated event analytics pipeline. It will be implemented in a future update.
-            </p>
-        </div>
       </div>
     </div>
   );
