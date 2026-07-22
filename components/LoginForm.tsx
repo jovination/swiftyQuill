@@ -30,7 +30,7 @@ function LoginForm(){
           <LoginModal />
 
           <div className="flex flex-col items-center mt-4 space-y-4">
-          <Link className="text-sm underline text-grey-600" href="/login">
+          <Link className="text-sm underline text-grey-600" href="/forgot-password">
           Forgot password?
           </Link>
           <div className="flex items-center text-center gap-2">

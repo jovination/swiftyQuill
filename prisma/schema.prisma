@@ -331,3 +331,14 @@ model AIJob {
   @@index([status])
 }
 
+model PasswordResetToken {
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@id([email, token])
+  @@index([token])
+  @@index([email])
+}
+
