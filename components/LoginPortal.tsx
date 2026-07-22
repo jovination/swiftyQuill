@@ -4,22 +4,20 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import AuthModal from "@/components/AuthModal"
+import Link from "next/link"
 
 
 
 function LoginPortal() {
   const [isMobile, setIsMobile] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
-  const [mode, setMode] = useState<"signin" | "signup">("signin")
 
   useEffect(() => {
     const checkIsMobile = () => {
@@ -36,23 +34,12 @@ function LoginPortal() {
 
   const LoginContent = () => (
     <>
-      <AuthModal mode={mode} />
+      <AuthModal mode="signin" />
       <div className="mt-4 text-center">
-        {mode === "signin" ? (
-          <>
-            <span className="text-sm">Don't have an account? </span>
-            <button className="text-sm underline text-grey-600" onClick={() => setMode("signup")}>
-              Sign up
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="text-sm">Already have an account? </span>
-            <button className="text-sm underline text-grey-600" onClick={() => setMode("signin")}>
-              Log in
-            </button>
-          </>
-        )}
+        <span className="text-sm">Don&apos;t have an account? </span>
+        <Link href="/signup" className="text-sm underline text-grey-600">
+          Sign up
+        </Link>
       </div>
     </>
   )
@@ -72,8 +59,6 @@ function LoginPortal() {
           <div className="px-4">
             <LoginContent />
           </div>
-          <DrawerFooter className="pt-2">
-          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     )
@@ -97,4 +82,3 @@ function LoginPortal() {
 }
 
 export default LoginPortal
-

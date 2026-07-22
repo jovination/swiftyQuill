@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero"
 import Featured from "@/components/Featured"
 import Footer from "@/components/Footer"
+import { ThemeToggleFab } from "@/components/admin/ThemeToggleFab"
 
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
       <Hero />
       <Featured />  
       <Footer />
+      <ThemeToggleFab />
     </div>
   );
 }
