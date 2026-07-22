@@ -3,12 +3,14 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { LineChartCard } from "@/components/admin/LineChartCard";
 import { getDateRangeFromParam } from "@/lib/admin/analytics";
 import { Activity, Server, Zap, AlertTriangle, Clock } from "lucide-react";
+import { ensureApiLogsSeeded } from "@/lib/api-logger";
 
 export default async function ApiAnalyticsPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  await ensureApiLogsSeeded();
   const params = await searchParams;
   const { start, end } = getDateRangeFromParam(params.range);
 

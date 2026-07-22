@@ -4,12 +4,14 @@ import { LineChartCard } from "@/components/admin/LineChartCard";
 import { getDateRangeFromParam } from "@/lib/admin/analytics";
 import { Users, FileText, Database, CreditCard, Activity } from "lucide-react";
 import { getAllUserStorageBytes } from "@/lib/storage";
+import { ensureApiLogsSeeded } from "@/lib/api-logger";
 
 export default async function AnalyticsOverviewPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  await ensureApiLogsSeeded();
   const params = await searchParams;
   const { start, end } = getDateRangeFromParam(params.range);
 

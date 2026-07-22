@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { DataTable } from "@/components/admin/DataTable";
+import { ensureApiLogsSeeded } from "@/lib/api-logger";
 import { 
   Activity, 
   CheckCircle2, 
@@ -14,6 +15,7 @@ import {
 export const revalidate = 0;
 
 export default async function AdminApiLogsPage() {
+  await ensureApiLogsSeeded();
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

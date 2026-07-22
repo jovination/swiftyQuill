@@ -3,16 +3,22 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadToR2, deleteFilesFromR2 } from "@/lib/r2";
 import { noteToResponse } from "@/lib/note-response";
+import { logApiRequest } from "@/lib/api-logger";
 
 // GET specific note by ID
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ noteId: string }> }
 ) {
+  const start = Date.now();
+  let status = 200;
+  let userId: string | undefined;
+
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
+      status = 401;
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -23,8 +29,11 @@ export async function GET(
     });
 
     if (!user) {
+      status = 404;
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    userId = user.id;
 
     const note = await prisma.note.findFirst({
       where: { id: noteId, userId: user.id },
@@ -34,17 +43,27 @@ export async function GET(
     });
 
     if (!note) {
+      status = 404;
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
 
     const response = await noteToResponse(note);
     return NextResponse.json(response);
   } catch (error) {
+    status = 500;
     console.error("Error fetching note:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    logApiRequest({
+      method: "GET",
+      route: "/api/notes/[noteId]",
+      status,
+      duration: Date.now() - start,
+      userId,
+    });
   }
 }
 

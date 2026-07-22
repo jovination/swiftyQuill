@@ -4,13 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { uploadToR2 } from "@/lib/r2";
 import { notesToResponse } from "@/lib/note-response";
 import { processAudioNoteInBackground } from "@/lib/audio-processor";
+import { logApiRequest } from "@/lib/api-logger";
 
 // GET all notes for the authenticated user
 export async function GET() {
+  const start = Date.now();
+  let status = 200;
+  let userId: string | undefined;
+
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
+      status = 401;
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,8 +25,11 @@ export async function GET() {
     });
 
     if (!user) {
+      status = 404;
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    userId = user.id;
 
     const notes = await prisma.note.findMany({
       where: { userId: user.id },
@@ -39,11 +48,20 @@ export async function GET() {
     const response = await notesToResponse(notes);
     return NextResponse.json(response);
   } catch (error) {
+    status = 500;
     console.error("Error fetching notes:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    logApiRequest({
+      method: "GET",
+      route: "/api/notes",
+      status,
+      duration: Date.now() - start,
+      userId,
+    });
   }
 }
 
