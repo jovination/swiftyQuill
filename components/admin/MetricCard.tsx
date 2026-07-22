@@ -31,7 +31,7 @@ export function MetricCard({
       {/* Subtle hover gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       
-      <div className="relative z-10 p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+      <div className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
         <h3 className="tracking-tight text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{title}</h3>
         {icon && (
           <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:text-accent group-hover:bg-accent/10 transition-colors duration-300">
@@ -39,7 +39,7 @@ export function MetricCard({
           </div>
         )}
       </div>
-      <div className="relative z-10 p-6 pt-0">
+      <div className="relative z-10 pt-0">
         <div className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">{value}</div>
         {(description || trend) && (
           <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
