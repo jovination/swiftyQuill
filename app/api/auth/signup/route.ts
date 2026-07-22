@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { validateEmail } from "@/lib/email-validation";
 import { generateVerificationToken } from "@/lib/verification-token";
 import { sendVerificationEmail } from "@/lib/email";
+import { notifyNewUser } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   try {
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
     const emailSent = await sendVerificationEmail(email, token);
 
     const { password: _, ...userWithoutPassword } = user;
+
+    notifyNewUser(username, email);
 
     return NextResponse.json(
       {

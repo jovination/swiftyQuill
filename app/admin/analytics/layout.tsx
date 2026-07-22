@@ -17,7 +17,7 @@ export default function AnalyticsLayout({ children }: { children: ReactNode }) {
           </p>
         </div>
         <div className="flex items-center gap-4 mt-2 md:mt-0">
-          <Suspense fallback={<div className="w-[240px] h-9 bg-muted animate-pulse rounded-md" />}>
+          <Suspense fallback={<div className="w-[240px] h-9 bg-muted animate-pulse rounded-xl" />}>
             <AnalyticsDateFilter />
           </Suspense>
           <Button variant="outline" size="sm" className="h-9">

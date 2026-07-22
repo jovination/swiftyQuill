@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { notifyNewUser } from "@/lib/notifications";
 
 const prisma = new PrismaClient();
 
@@ -46,8 +47,9 @@ export async function POST(request: Request) {
       },
     });
 
+    notifyNewUser(username, email);
+
     return NextResponse.json(
-      { message: "User created successfully" },
       { status: 201 }
     );
   } catch (error) {

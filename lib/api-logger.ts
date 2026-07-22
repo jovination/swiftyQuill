@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { notifyApiError } from "./notifications";
 
 export interface LogApiRequestOptions {
   method: string;
@@ -31,6 +32,10 @@ export function logApiRequest(options: LogApiRequestOptions): void {
     .catch((err) => {
       console.error("Failed to persist ApiLog:", err);
     });
+
+  if (status >= 500) {
+    notifyApiError(route, status, `${method} ${route} returned ${status}`);
+  }
 }
 
 /**

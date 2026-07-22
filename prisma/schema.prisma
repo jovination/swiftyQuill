@@ -31,6 +31,7 @@ model User {
   auditLogs     AuditLog[]
   affiliate     Affiliate?
   reports       Report[]
+  notifications Notification[]
 
   @@index([email])
 }
@@ -299,6 +300,20 @@ enum JobStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  type      String   @default("SYSTEM") // ACCOUNT, ERROR, ATTENTION, REPORT, INSIGHT, USAGE, SYSTEM
+  audience  String   @default("ALL") // ALL, PREMIUM, FREE
+  senderId  String
+  createdAt DateTime @default(now())
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([type])
 }
 
 model AIJob {

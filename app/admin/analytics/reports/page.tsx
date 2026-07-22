@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export default function ReportsAnalyticsPage() {
   return (
     <div className="space-y-6">
-      <div className="bg-blue-500/10 border border-blue-500/20 text-blue-500 px-4 py-3 rounded-lg flex items-center">
+      <div className="bg-blue-500/10 border border-blue-500/20 text-blue-500 px-4 py-3 rounded-2xl flex items-center">
         <FileText className="w-5 h-5 mr-3" />
         <p className="text-sm font-medium">Export functionality and scheduled reports are currently in beta.</p>
       </div>
@@ -43,7 +43,7 @@ export default function ReportsAnalyticsPage() {
             </p>
             
             <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-accent/20 border border-border/50">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-accent/20 border border-border/50">
                     <div>
                         <p className="font-medium">Daily Executive Summary</p>
                         <p className="text-sm text-muted-foreground flex items-center mt-1">
@@ -53,7 +53,7 @@ export default function ReportsAnalyticsPage() {
                     <Button variant="secondary" size="sm" disabled>Configure</Button>
                 </div>
                 
-                <div className="flex items-center justify-between p-4 rounded-lg bg-accent/20 border border-border/50">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-accent/20 border border-border/50">
                     <div>
                         <p className="font-medium">Weekly Growth Metrics</p>
                         <p className="text-sm text-muted-foreground flex items-center mt-1">

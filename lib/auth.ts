@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
+import { notifyNewUser } from "./notifications";
 import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { getGeoLocation } from "./geo";
@@ -121,6 +122,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           
           user.id = newUser.id;
           user.username = newUser.username;
+
+          notifyNewUser(username, user.email!);
         } else {
           user.id = existingUser.id;
           user.username = existingUser.username;

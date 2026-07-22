@@ -8,7 +8,7 @@ export function AnalyticsSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm shadow-sm p-6"
+            className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card p-5 shadow-sm"
           >
             <div className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24 rounded-full" />

@@ -54,7 +54,7 @@ export default async function GeoAnalyticsPage({
   return (
     <div className="space-y-6">
       {totalCountries === 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 px-4 py-3 rounded-lg flex items-center">
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 px-4 py-3 rounded-2xl flex items-center">
           <DatabaseZap className="w-5 h-5 mr-3" />
           <p className="text-sm font-medium">Geolocation tracking is active but waiting for incoming user traffic to populate these metrics.</p>
         </div>

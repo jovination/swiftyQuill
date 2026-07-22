@@ -1,5 +1,5 @@
-import { TableSkeleton } from "@/components/admin/skeletons/TableSkeleton";
+import { ContentSkeleton } from "@/components/admin/skeletons/ContentSkeleton";
 
 export default function ContentLoading() {
-  return <TableSkeleton />;
+  return <ContentSkeleton />;
 }

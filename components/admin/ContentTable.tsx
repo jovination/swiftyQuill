@@ -24,18 +24,17 @@ export function ContentTable({ data }: { data: any[] }) {
   const columns = [
     { header: "Title", accessorKey: "title" },
     { header: "Author", accessorKey: "author" },
-    { 
-      header: "Status", 
+    {
+      header: "Status",
       accessorKey: "status",
       cell: (item: any) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-          item.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 
-          item.status === 'FLAGGED' ? 'bg-yellow-500/20 text-yellow-400' : 
-          'bg-red-500/20 text-red-400'
-        }`}>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
+          {item.status === "ACTIVE" && <CheckCircle className="w-3 h-3 text-muted-foreground" />}
+          {item.status === "FLAGGED" && <AlertTriangle className="w-3 h-3 text-muted-foreground" />}
+          {item.status === "REMOVED" && <Trash2 className="w-3 h-3 text-muted-foreground" />}
           {item.status}
         </span>
-      )
+      ),
     },
     { header: "Shared", accessorKey: "isShared" },
     { header: "Media", accessorKey: "media" },
@@ -44,40 +43,40 @@ export function ContentTable({ data }: { data: any[] }) {
       header: "Actions",
       accessorKey: "actions",
       cell: (item: any) => (
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {item.status !== "ACTIVE" && (
-            <Button 
+            <Button
               variant="ghost" size="sm" disabled={isPending}
               onClick={() => handleStatusChange(item.id, "ACTIVE")}
-              className="text-green-400 hover:bg-green-500/10 px-2"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
               title="Restore to Active"
             >
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="w-3.5 h-3.5" />
             </Button>
           )}
           {item.status !== "FLAGGED" && (
-            <Button 
+            <Button
               variant="ghost" size="sm" disabled={isPending}
               onClick={() => handleStatusChange(item.id, "FLAGGED")}
-              className="text-yellow-400 hover:bg-yellow-500/10 px-2"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
               title="Flag Content"
             >
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle className="w-3.5 h-3.5" />
             </Button>
           )}
           {item.status !== "REMOVED" && (
-            <Button 
+            <Button
               variant="ghost" size="sm" disabled={isPending}
               onClick={() => handleStatusChange(item.id, "REMOVED")}
-              className="text-red-400 hover:bg-red-500/10 px-2"
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
               title="Remove Content"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return <DataTable data={data} columns={columns} />;

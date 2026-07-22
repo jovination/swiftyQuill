@@ -1,5 +1,5 @@
-import { TableSkeleton } from "@/components/admin/skeletons/TableSkeleton";
+import { NotificationsSkeleton } from "@/components/admin/skeletons/NotificationsSkeleton";
 
 export default function NotificationsLoading() {
-  return <TableSkeleton />;
+  return <NotificationsSkeleton />;
 }

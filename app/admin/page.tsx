@@ -27,7 +27,6 @@ export default async function AdminOverviewPage() {
   });
 
   const userGrowthMap = new Map<string, number>();
-  // We use timestamps to keep exact dates for 90 days, avoiding string format issues
   for (let i = 89; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -35,14 +34,12 @@ export default async function AdminOverviewPage() {
     userGrowthMap.set(d.getTime().toString(), 0);
   }
 
-  // To show cumulative growth, we need total users before 90 days ago
   const usersBefore90Days = await prisma.user.count({
     where: { createdAt: { lt: ninetyDaysAgo } }
   });
 
   let runningTotal = usersBefore90Days;
 
-  // Count daily new users
   const dailyCounts = new Map<string, number>();
   recentUsers.forEach(u => {
     const d = new Date(u.createdAt);
@@ -53,7 +50,6 @@ export default async function AdminOverviewPage() {
     }
   });
 
-  // Calculate running total
   const chartData = Array.from(userGrowthMap.keys()).map(timestampStr => {
     const newUsers = dailyCounts.get(timestampStr) || 0;
     runningTotal += newUsers;
@@ -64,7 +60,7 @@ export default async function AdminOverviewPage() {
     };
   });
 
-  // Heatmap Logic (All Time for Year Navigation)
+  // Heatmap Logic
   const recentNotes = await prisma.note.findMany({
     select: { createdAt: true }
   });
@@ -76,13 +72,20 @@ export default async function AdminOverviewPage() {
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
-          Platform Overview
-        </h1>
-        <p className="text-muted-foreground">Monitor platform health, user engagement, and system analytics.</p>
+    <div className="w-full pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-background via-muted/30 to-background p-6 rounded-3xl border border-border/50 shadow-sm">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
+              Platform Overview
+            </h1>
+          </div>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Monitor platform health, user engagement, and system analytics.
+          </p>
+        </div>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <MetricCard
           title="Total Users"
@@ -109,10 +112,12 @@ export default async function AdminOverviewPage() {
           description="Current premium users"
         />
       </div>
-      <div className="w-full bg-background/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-sm hover:border-accent/50 transition-all duration-300">
+
+      <div className="rounded-3xl border border-border/50 bg-card p-6 shadow-sm">
         <UserGrowthChart data={chartData} />
       </div>
-      <div className="w-full bg-background/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-sm hover:border-accent/50 transition-all duration-300">
+
+      <div className="rounded-3xl border border-border/50 bg-card p-6 shadow-sm">
         <div className="mb-4">
           <h3 className="text-lg font-semibold leading-none tracking-tight">Platform Activity</h3>
           <p className="text-sm text-muted-foreground mt-1">Number of notes written across the platform over the last year</p>

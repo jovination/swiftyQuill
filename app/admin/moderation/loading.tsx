@@ -1,5 +1,5 @@
-import { TableSkeleton } from "@/components/admin/skeletons/TableSkeleton";
+import { ModerationSkeleton } from "@/components/admin/skeletons/ModerationSkeleton";
 
 export default function ModerationLoading() {
-  return <TableSkeleton />;
+  return <ModerationSkeleton />;
 }

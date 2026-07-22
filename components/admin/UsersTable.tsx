@@ -1,91 +1,118 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable } from "./DataTable";
 import { updateUserStatus, deleteUser } from "@/actions/admin";
 import { toast } from "sonner";
-import { Ban, CheckCircle, MoreHorizontal, Trash2 } from "lucide-react";
+import { Shield, AlertTriangle, Ban, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
 
-export function UsersTable({ data }: { data: any[] }) {
+interface UserRow {
+  id: string;
+  username: string;
+  email: string;
+  status: string;
+  role: string;
+  createdAt: string;
+}
+
+export function UsersTable({ data }: { data: UserRow[] }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
-  const handleStatusToggle = (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "ACTIVE" ? "BANNED" : "ACTIVE";
+  function handleStatusChange(userId: string, newStatus: "ACTIVE" | "BANNED" | "SUSPENDED") {
     startTransition(async () => {
       try {
         await updateUserStatus(userId, newStatus);
         toast.success(`User status updated to ${newStatus}`);
-      } catch (error: any) {
-        toast.error(error.message || "Failed to update user status");
+        router.refresh();
+      } catch (e: any) {
+        toast.error(e.message || "Failed to update user status");
       }
     });
-  };
+  }
 
-  const handleDeleteUser = (userId: string) => {
-    if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
-      startTransition(async () => {
-        try {
-          await deleteUser(userId);
-          toast.success("User deleted successfully");
-        } catch (error: any) {
-          toast.error(error.message || "Failed to delete user");
-        }
-      });
-    }
-  };
+  function handleDelete(userId: string) {
+    if (!confirm("Are you sure you want to permanently delete this user? This cannot be undone.")) return;
+    startTransition(async () => {
+      try {
+        await deleteUser(userId);
+        toast.success("User deleted permanently");
+        router.refresh();
+      } catch (e: any) {
+        toast.error(e.message || "Failed to delete user");
+      }
+    });
+  }
 
   const columns = [
     { header: "Username", accessorKey: "username" },
     { header: "Email", accessorKey: "email" },
-    { 
-      header: "Status", 
+    { header: "Role", accessorKey: "role" },
+    {
+      header: "Status",
       accessorKey: "status",
-      cell: (item: any) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+      cell: (item: UserRow) => (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+          item.status === "ACTIVE" ? "bg-muted text-foreground border border-border" :
+          item.status === "SUSPENDED" ? "bg-muted text-muted-foreground border border-border" :
+          "bg-muted text-foreground border border-border"
+        }`}>
+          {item.status === "ACTIVE" && <Shield className="w-3 h-3 text-muted-foreground" />}
+          {item.status === "SUSPENDED" && <AlertTriangle className="w-3 h-3 text-muted-foreground" />}
+          {item.status === "BANNED" && <Ban className="w-3 h-3 text-muted-foreground" />}
           {item.status}
         </span>
-      )
+      ),
     },
-    { header: "Role", accessorKey: "role" },
-    { header: "Storage", accessorKey: "storageUsed" },
     { header: "Joined", accessorKey: "createdAt" },
     {
       header: "Actions",
       accessorKey: "actions",
-      cell: (item: any) => (
-        <Menubar className="border-none bg-transparent w-fit justify-end ml-auto">
-          <MenubarMenu>
-            <MenubarTrigger className="cursor-pointer" disabled={isPending}>
-              <MoreHorizontal className="w-4 h-4" />
-            </MenubarTrigger>
-            <MenubarContent align="end">
-              <MenubarItem 
-                className={item.status === "ACTIVE" ? "text-amber-400 focus:text-amber-300 focus:bg-amber-500/10 cursor-pointer" : "text-green-400 focus:text-green-300 focus:bg-green-500/10 cursor-pointer"}
-                onClick={() => handleStatusToggle(item.id, item.status)}
-              >
-                {item.status === "ACTIVE" ? <Ban className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                {item.status === "ACTIVE" ? "Ban User" : "Unban User"}
-              </MenubarItem>
-              <MenubarItem 
-                className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer"
-                onClick={() => handleDeleteUser(item.id)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete User
-              </MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-        </Menubar>
-      )
-    }
+      cell: (item: UserRow) => (
+        <div className="flex gap-1">
+          {item.status !== "ACTIVE" && (
+            <Button
+              variant="ghost" size="sm" disabled={isPending}
+              onClick={() => handleStatusChange(item.id, "ACTIVE")}
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              title="Reactivate"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {item.status !== "SUSPENDED" && item.status !== "BANNED" && (
+            <Button
+              variant="ghost" size="sm" disabled={isPending}
+              onClick={() => handleStatusChange(item.id, "SUSPENDED")}
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              title="Suspend"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {item.status !== "BANNED" && (
+            <Button
+              variant="ghost" size="sm" disabled={isPending}
+              onClick={() => handleStatusChange(item.id, "BANNED")}
+              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              title="Ban"
+            >
+              <Ban className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          <Button
+            variant="ghost" size="sm" disabled={isPending}
+            onClick={() => handleDelete(item.id)}
+            className="h-7 px-2 text-muted-foreground hover:text-foreground"
+            title="Delete permanently"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ),
+    },
   ];
 
   return <DataTable data={data} columns={columns} />;

@@ -103,7 +103,7 @@ export default async function AnalyticsUsersPage({
           <p className="text-sm text-muted-foreground mt-1 mb-4">Distribution of authentication providers</p>
           <div className="space-y-4">
             {Array.from(loginMethodsMap.entries()).map(([provider, count]) => (
-              <div key={provider} className="flex items-center justify-between p-3 rounded-lg bg-accent/20 border border-border/50">
+              <div key={provider} className="flex items-center justify-between p-3 rounded-2xl bg-accent/20 border border-border/50">
                 <span className="font-medium capitalize">{provider}</span>
                 <span className="text-muted-foreground">{count} users</span>
               </div>

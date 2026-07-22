@@ -1,5 +1,6 @@
 import { signIn } from "@/lib/auth"
 import { NextResponse } from "next/server"
+import { notifyFailedLogin } from "@/lib/notifications"
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
     })
 
     if (result?.error) {
+      notifyFailedLogin(email, result.error)
       return NextResponse.json({ message: result.error }, { status: 401 })
     }
 
