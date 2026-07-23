@@ -7,7 +7,7 @@ export default auth((req) => {
   if (pathname.startsWith("/admin")) {
     const role = (req.auth?.user as any)?.role;
     if (role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/notes", req.url));
     }
   }
 
