@@ -23,6 +23,7 @@ export function NoteActions({ noteId, currentStatus }: { noteId: string; current
     });
   }
 
+  
   return (
     <div className="flex gap-1">
       {currentStatus !== "ACTIVE" && (
